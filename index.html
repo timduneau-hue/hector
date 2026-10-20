@@ -271,10 +271,13 @@ const reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)'
 const LOG=[];
 function log(...a){
   const line=new Date().toTimeString().slice(0,8)+'  '+a.map(x=>typeof x==='string'?x:(()=>{try{return JSON.stringify(x)}catch(e){return String(x)}})()).join(' ');
-  LOG.push(line);if(LOG.length>300)LOG.shift();
+  LOG.push(line);if(LOG.length>300)LOG.shift();logDirty=true;
   try{console.log('[Hector]',...a);}catch(e){}
   if(!$('settings').hidden)$('log').textContent=LOG.slice(-80).join('\n');
 }
+let logDirty=false;
+try{const old=JSON.parse(localStorage.getItem('hector.log')||'[]');if(old.length){LOG.push(...old.slice(-120),'—— session précédente ci-dessus ——');}}catch(e){}
+setInterval(()=>{if(!logDirty)return;logDirty=false;try{localStorage.setItem('hector.log',JSON.stringify(LOG.slice(-200)));}catch(e){}},5000);
 let toastT=null;
 function toast(msg,ms=3500){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),ms);}
 
@@ -533,27 +536,45 @@ const AudioIO={ctx:null,stream:null,raw:null,delayed:null,an:null,buf:null,level
     try{
       this.ctx=new (window.AudioContext||window.webkitAudioContext)();
       if(this.raw){
-        const src=this.ctx.createMediaStreamSource(new MediaStream([this.raw]));
-        this.an=this.ctx.createAnalyser();this.an.fftSize=1024;this.buf=new Float32Array(this.an.fftSize);src.connect(this.an);
-        const dl=this.ctx.createDelay(4);dl.delayTime.value=2.2;const dest=this.ctx.createMediaStreamDestination();src.connect(dl);dl.connect(dest);
-        this.delayed=dest.stream.getAudioTracks()[0];
         this.outNode=this.ctx.createGain();this.outAn=this.ctx.createAnalyser();this.outAn.fftSize=512;this.outBuf=new Float32Array(this.outAn.fftSize);
         this.outNode.connect(this.outAn);this.outAn.connect(this.ctx.destination);
-        try{
-          const url=URL.createObjectURL(new Blob([PCM_WORKLET],{type:'application/javascript'}));
-          await this.ctx.audioWorklet.addModule(url);
-          const node=new AudioWorkletNode(this.ctx,'hector-pcm');src.connect(node);
-          const sink=this.ctx.createGain();sink.gain.value=0;node.connect(sink);sink.connect(this.ctx.destination);
-          node.port.onmessage=e=>this.onPcm(e.data);
-        }catch(e){log('capture 16 kHz indisponible :',e.message);}
+        try{const url=URL.createObjectURL(new Blob([PCM_WORKLET],{type:'application/javascript'}));await this.ctx.audioWorklet.addModule(url);this.workletOK=true;}
+        catch(e){log('capture 16 kHz indisponible :',e.message);}
+        this.buildMic();
       }
     }catch(e){log('audio indisponible :',e.message);}
     this.ok=!!this.raw;return true;
   },
-  resume(){if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});},
+  resume(){if(this.ctx&&this.ctx.state!=='running'&&this.ctx.state!=='closed')this.ctx.resume().catch(()=>{});},
+  /* branche le micro sur l'analyse, le retard et la capture 16 kHz ; refait à chaque relance du micro */
+  buildMic(){
+    if(this.src){try{this.src.disconnect();}catch(e){}}
+    if(this.node){try{this.node.port.onmessage=null;this.node.disconnect();}catch(e){}}
+    const src=this.ctx.createMediaStreamSource(new MediaStream([this.raw]));this.src=src;
+    this.an=this.ctx.createAnalyser();this.an.fftSize=1024;this.buf=new Float32Array(this.an.fftSize);src.connect(this.an);
+    const dl=this.ctx.createDelay(4);dl.delayTime.value=2.2;const dest=this.ctx.createMediaStreamDestination();src.connect(dl);dl.connect(dest);
+    this.delayed=dest.stream.getAudioTracks()[0];
+    if(this.workletOK){const node=new AudioWorkletNode(this.ctx,'hector-pcm');src.connect(node);this.node=node;
+      if(!this.sink){this.sink=this.ctx.createGain();this.sink.gain.value=0;this.sink.connect(this.ctx.destination);}
+      node.connect(this.sink);node.port.onmessage=e=>this.onPcm(e.data);}
+    this.raw.onended=()=>{log('le micro s\'est arrêté');this.restartMic('micro arrêté');};
+    this.lastPcmT=nowS();
+  },
+  /* si le micro se coupe (appel, autre appli, veille), on le redemande sans rien toucher */
+  async restartMic(why){
+    if(this.restarting||!this.ctx||nowS()<(this.nextRestartT||0))return;this.restarting=true;this.nextRestartT=nowS()+10;log('relance du micro ('+why+')');
+    try{
+      const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      const tr=st.getAudioTracks()[0];if(!tr)throw new Error('aucune piste');
+      try{if(this.raw&&this.raw!==tr)this.raw.stop();}catch(e){}
+      this.raw=tr;this.buildMic();this.ok=true;OAI.close('micro relancé');log('micro relancé');
+    }catch(e){log('relance du micro impossible :',e.name||e.message);}
+    this.restarting=false;
+  },
+  lastPcmT:0,
   ring:[],
   onPcm(chunk){
-    const t=nowS();this.ring.push({t,c:chunk});if(this.ring.length>80)this.ring.shift();
+    const t=nowS();this.lastPcmT=t;this.ring.push({t,c:chunk});if(this.ring.length>200)this.ring.shift();
     VAD.feed(chunk,t);
     if(GM.state==='prêt'&&(!GM.manualVad||GM.activity))GM.sendPcm(chunk);
   },
@@ -796,7 +817,8 @@ const VAD={active:false,loudN:0,quietN:0,floor:.006,startT:-99,endT:-99,level:0,
       if(this.loudN>=(echo?3:2)){this.active=true;this.quietN=0;this.startT=t-this.loudN*.1-.4;GM.onSpeechStart();}
     }else{
       this.quietN=loud?0:this.quietN+1;
-      if(this.quietN>=8||t-this.startT>30){this.active=false;this.loudN=0;this.endT=t;GM.onSpeechEnd();}
+      if(t-this.startT>6)this.floor=Math.min(.05,this.floor*.97+r*.03);
+      if(this.quietN>=8||t-this.startT>20){this.active=false;this.loudN=0;this.endT=t;GM.onSpeechEnd();}
     }
   }
 };
@@ -810,6 +832,7 @@ Tu parles toujours en français.`;}
 function b64FromBytes(u8){let s='';const C=0x8000;for(let i=0;i<u8.length;i+=C)s+=String.fromCharCode.apply(null,u8.subarray(i,i+C));return btoa(s);}
 const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,sleepAfter:false,greet:null,lastErr:'',transcribeOn:false,proactiveOn:false,
   retryAt:0,fails:0,token:null,openedAt:0,step:0,handle:null,turnAudio:false,muteTurn:false,userTx:'',nameHeard:false,sources:[],nextTime:0,openAskT:0,manualVad:true,activity:false,
+  failKind:'',lastSrvT:0,awaitT:0,replay:null,openTimer:null,lastHintT:0,lastUtt:null,
   audio:{srcObject:null,play(){return Promise.resolve();}},
   get pc(){return this.ws;},
   prefetch(){},
@@ -832,9 +855,29 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     this.activity=true;this.send({realtimeInput:{activityStart:{}}});
     for(const x of AudioIO.ring)if(x.t>=fromT)this.sendPcm(x.c);
   },
-  endActivity(){if(!this.activity)return;this.activity=false;this.send({realtimeInput:{activityEnd:{}}});},
+  endActivity(){if(!this.activity)return;this.activity=false;this.send({realtimeInput:{activityEnd:{}}});
+    this.lastUtt={a:VAD.startT,b:nowS()};if(!this.awaitT)this.awaitT=nowS();},
+  /* surveillance : Google doit répondre à une phrase ; sinon la connexion est morte, on la refait et on rejoue la phrase */
+  watch(){
+    const t=nowS();
+    if(this.ws&&this.state==='prêt'&&this.awaitT&&this.transcribeOn&&t-this.awaitT>6&&this.lastSrvT<this.awaitT){
+      log('Google ne répond plus : nouvelle connexion');const u=this.lastUtt;this.close('sans réponse');
+      if(u&&t-u.a<18)this.replay=u;this.retryAt=0;this.open('relance');
+    }
+  },
+  /* quelqu'un parle mais Hector ne peut pas joindre Google : on réessaie tout de suite, ou on dit pourquoi */
+  wantNow(){
+    if(this.ws||this.opening||!hasBrain())return;
+    if(Date.now()<this.retryAt){
+      if(this.failKind==='net'||this.failKind==='other'){this.retryAt=0;}
+      else{const t=nowS();if(t-this.lastHintT>30){this.lastHintT=t;const at=new Date(this.retryAt);
+        const why=this.failKind==='quota'?'quota gratuit de Google atteint':this.failKind==='key'?'clé Google refusée':'modèle introuvable';
+        hint(`Hector ne peut pas répondre : ${why}. Nouvel essai à ${at.getHours()}h${String(at.getMinutes()).padStart(2,'0')}.`,7000);}}
+    }
+  },
   onSpeechStart(){
     if(S.awake&&!this.speaking)setMood('ecoute');
+    if(cfg.brain==='gemini')this.wantNow();
     if(this.state==='prêt')this.beginActivity(VAD.startT);
   },
   onSpeechEnd(){
@@ -848,24 +891,34 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     let ws;
     try{ws=new WebSocket((cfg.geminiUrl||GM_URL)+'?key='+encodeURIComponent(cfg.geminiKey));}catch(e){this.opening=false;this.state='off';this.lastErr=e.message;return;}
     this.ws=ws;
-    ws.onopen=()=>{this.state='réglage';this.send(this.setupMsg(this.step));};
-    ws.onmessage=async ev=>{let txt=ev.data;if(typeof txt!=='string'){try{txt=await (ev.data.text?ev.data.text():new Response(ev.data).text());}catch(e){return;}}
-      let m;try{m=JSON.parse(txt);}catch(e){return;}this.onMsg(m);};
+    clearTimeout(this.openTimer);
+    this.openTimer=setTimeout(()=>{if(this.ws===ws&&this.state!=='prêt'){log('Google ne répond pas à la connexion');this.lastErr='délai de connexion dépassé';this.close('délai dépassé');this.failKind='net';this.fails++;this.retryAt=Date.now()+3000;}},12000);
+    ws.onopen=()=>{if(this.ws!==ws)return;this.state='réglage';this.send(this.setupMsg(this.step));};
+    ws.onmessage=async ev=>{if(this.ws!==ws)return;let txt=ev.data;if(typeof txt!=='string'){try{txt=await (ev.data.text?ev.data.text():new Response(ev.data).text());}catch(e){return;}}
+      if(this.ws!==ws)return;let m;try{m=JSON.parse(txt);}catch(e){return;}this.lastSrvT=nowS();this.awaitT=0;this.onMsg(m);};
     ws.onerror=()=>{};
     ws.onclose=ev=>{
+      if(this.ws!==ws)return;   /* une ancienne connexion qui se ferme ne doit pas couper la nouvelle */
+      clearTimeout(this.openTimer);
       const was=this.state,why=String(ev.reason||'').slice(0,240);
-      if(this.ws===ws){this.ws=null;}this.opening=false;this.activity=false;this.stopAudio();this.responding=false;this.state='off';
+      this.ws=null;this.opening=false;this.activity=false;this.stopAudio();this.responding=false;this.turnAudio=false;this.state='off';
+      const kind=/quota|exhausted|rate limit|resource/i.test(why)?'quota':/api key|api_key|permission|unauth|denied/i.test(why)?'key':/not found|not supported for/i.test(why)?'model':why?'other':'net';
       if(was==='réglage'||was==='connexion'){
-        this.lastErr=(ev.code||'')+' '+why;log('Gemini a refusé la session :',this.lastErr);
+        this.lastErr=(ev.code||'')+' '+why;log('Gemini a refusé la session :',this.lastErr||'(sans raison)');
+        if(this.handle&&kind!=='quota'&&kind!=='key'){log('reprise de l\'ancienne session impossible : nouvelle session');this.handle=null;setTimeout(()=>this.open(reason),300);return;}
         if(/unknown name|invalid json|cannot find field|not supported|unsupported|invalid argument/i.test(why)&&this.step<4){this.step++;log('nouvel essai avec moins d\'options (palier '+this.step+')');setTimeout(()=>this.open(reason),300);return;}
-        if(/quota|exhausted|rate/i.test(why))toast('Quota gratuit de Gemini atteint : Hector réessaiera plus tard.',6000);
-        else if(/api key|api_key|permission|unauth|denied/i.test(why))toast('Clé Google refusée : vérifie-la dans les réglages.',6000);
-        else if(/not found|not supported for/i.test(why))toast('Modèle Gemini introuvable : vérifie son nom dans les réglages.',6000);
-        this.fails++;this.retryAt=Date.now()+Math.min(300000,15000*Math.pow(2,this.fails-1));this.greet=null;
-      }else if(ev.code!==1000)log('connexion Gemini coupée',ev.code,why);
+        if(kind==='quota')toast('Quota gratuit de Gemini atteint : Hector réessaiera plus tard.',6000);
+        else if(kind==='key')toast('Clé Google refusée : vérifie-la dans les réglages.',6000);
+        else if(kind==='model')toast('Modèle Gemini introuvable : vérifie son nom dans les réglages.',6000);
+        this.failKind=kind;this.fails++;this.greet=null;
+        this.retryAt=Date.now()+(kind==='net'||kind==='other'?Math.min(30000,3000*this.fails):Math.min(300000,60000*this.fails));
+      }else{
+        if(ev.code!==1000||why)log('connexion Gemini coupée',ev.code,why);
+        if(kind==='quota'){this.lastErr=(ev.code||'')+' '+why;this.failKind='quota';this.fails++;this.retryAt=Date.now()+Math.min(300000,60000*this.fails);toast('Quota gratuit de Gemini atteint : Hector réessaiera plus tard.',6000);}
+      }
     };
   },
-  close(why){this.activity=false;if(this.ws){log('connexion Gemini fermée ('+why+')');const w=this.ws;this.ws=null;try{w.close(1000);}catch(e){}}
+  close(why){clearTimeout(this.openTimer);this.activity=false;this.awaitT=0;if(this.ws){log('connexion Gemini fermée ('+why+')');const w=this.ws;this.ws=null;try{w.close(1000);}catch(e){}}
     this.stopAudio();this.state='off';this.opening=false;this.responding=false;this.turnAudio=false;},
   respond(){},
   cancel(){const gen=this.turnAudio;this.stopAudio();if(gen)this.muteTurn=true;},
@@ -886,7 +939,10 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     if(m.setupComplete){
       this.state='prêt';this.fails=0;this.openedAt=nowS();this.proactiveOn=this.step<2;this.transcribeOn=this.step<3;
       log('session Gemini prête'+(this.proactiveOn?' (il trie lui-même ce qui lui est adressé)':''));
+      clearTimeout(this.openTimer);this.failKind='';this.awaitT=0;
       this.manualVad=this.step<4;this.activity=false;
+      if(this.replay&&this.manualVad){const u=this.replay;this.replay=null;log('je rejoue la dernière phrase');this.activity=true;this.send({realtimeInput:{activityStart:{}}});
+        for(const x of AudioIO.ring)if(x.t>=u.a&&x.t<=u.b+.05)this.sendPcm(x.c);this.endActivity();}
       /* la phrase qui a déclenché la connexion n'est pas perdue : on la rejoue */
       if(this.manualVad){
         if(VAD.active)this.beginActivity(VAD.startT);
@@ -992,7 +1048,22 @@ function manage(){
   }
 }
 setInterval(manage,400);
-let pausedHintT=0;
+let pausedHintT=0,hiddenAt=0;
+/* santé du micro et de la connexion, toutes les 2 secondes */
+setInterval(()=>{
+  if(!S.started||!AudioIO.ctx)return;
+  const t=nowS();
+  if(cfg.brain==='gemini'&&!S.demo)GM.watch();
+  if(AudioIO.ctx.state==='running'&&AudioIO.raw&&AudioIO.workletOK){
+    const quiet=t-AudioIO.lastPcmT;
+    if(AudioIO.raw.readyState==='ended'||quiet>8)AudioIO.restartMic(AudioIO.raw.readyState==='ended'?'micro arrêté':'plus aucun son depuis '+Math.round(quiet)+' s');
+  }
+},2000);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){hiddenAt=nowS();return;}
+  if(hiddenAt&&nowS()-hiddenAt>20){log('retour après '+Math.round(nowS()-hiddenAt)+' s en arrière-plan : connexion refaite');GM.close('retour au premier plan');OAI.close('retour au premier plan');GM.retryAt=0;OAI.retryAt=0;}
+  hiddenAt=0;AudioIO.resume();
+});
 setInterval(()=>{if(S.started&&AudioIO.ctx&&AudioIO.ctx.state==='suspended'){AudioIO.resume();const t=nowS();if(t-pausedHintT>20){pausedHintT=t;hint("Touche l'écran une fois pour qu'Hector puisse t'entendre.",8000);}}},2000);
 
 /* ================= Animation ================= */
@@ -1091,7 +1162,7 @@ function onTap(){
   if(S.demo||!hasBrain()){demoTap();return;}
   if(!capOK()){S.wake('toucher');setMood('triste');hint('Plafond de dépense atteint ce mois-ci.');return;}
   S.wake('toucher');
-  if(!RT.pc)RT.open('toucher');
+  if(!RT.pc){if(cfg.brain==='gemini'){GM.wantNow();if(GM.failKind==='net'||GM.failKind==='other'||!GM.failKind)GM.retryAt=0;}RT.open('toucher');}
 }
 let demoI=0;
 function demoTap(){
@@ -1191,6 +1262,7 @@ function renderDiag(){
     row('Cerveau',(cfg.brain==='gemini'?'Gemini Live ('+cfg.geminiModel+'), ':'ChatGPT, ')+(hasBrain()?(capOK()?'clé présente':'plafond atteint'):'pas de clé : mode démo'),hasBrain()&&capOK()?'ok':'warn')+
     row('Connexion',st[0],st[1])+
     row('Détection du nom',!RT.pc?'à la prochaine connexion':(cfg.brain==='gemini'?(GM.proactiveOn?'Gemini trie ce qui lui est adressé':(GM.transcribeOn?'par transcription':'indisponible')):(RT.transcribeOn?'active ('+cfg.transcribe+')':'indisponible')),RT.pc?'ok':'')+
+    row('Dernier message de Google',cfg.brain!=='gemini'?'—':(GM.lastSrvT?'il y a '+Math.round(nowS()-GM.lastSrvT)+' s':'aucun'),'')+
     row('Parole détectée',VAD.active?'oui, en ce moment':'silence (niveau '+VAD.level.toFixed(3)+', seuil '+Math.max(.012,VAD.floor*3).toFixed(3)+')',VAD.active?'ok':'')+
     row('Micro',AudioIO.ok?(AudioIO.ctx&&AudioIO.ctx.state!=='running'?'en pause : touche l\'écran':'actif, niveau '+AudioIO.level.toFixed(3)):'refusé',AudioIO.ok&&AudioIO.ctx&&AudioIO.ctx.state==='running'?'ok':'bad')+
     row('Caméra',Vision.video.srcObject?(Vision.ready?(Vision.lastSeen>t-3?'visage vu':'aucun visage'):(Vision.err?'détection indisponible':'chargement…')):'désactivée',Vision.ready?'ok':'warn')+

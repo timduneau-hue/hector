@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Hector</title>
+<title>Wilson</title>
 <style>
-/* Hector, appli tablette — lot 1 du fil conducteur. Un seul fichier : tête 3D, regard, veille, nom, voix ChatGPT. */
+/* Wilson, ami et assistant sur tablette. Un seul fichier : tête 3D, regard, veille, nom, voix Gemini, maison, surveillance. */
 :root{
   --bg:#05080a; --fg:#e6ecea; --muted:#8fa09e; --line:#26312f; --panel:#0e1416; --field:#152022;
   --accent:#f0a445; --ok:#4fd1a5; --warn:#f0c045; --bad:#f07a70;
@@ -82,7 +82,7 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:36px}
 </head>
 <body>
 <div id="bg"></div>
-<canvas id="c" aria-label="Hector, le petit robot"></canvas>
+<canvas id="c" aria-label="Wilson, notre ami robot"></canvas>
 <div id="dim"></div>
 <div id="sub" aria-live="polite"></div>
 <div id="hint"></div>
@@ -94,24 +94,24 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:36px}
 
 <div id="start">
   <div class="box">
-    <h1>Hector</h1>
-    <p id="start-msg">Touche « Démarrer » pour autoriser la caméra et le micro. Hector restera ensuite allumé en permanence.</p>
+    <h1>Wilson</h1>
+    <p id="start-msg">Touche « Démarrer » pour autoriser la caméra et le micro. Wilson restera ensuite allumé en permanence.</p>
     <div class="actions">
       <button class="primary" id="b-start" type="button">Démarrer</button>
       <button id="b-start-settings" type="button">Réglages</button>
-      <button id="b-nomic" type="button" hidden>Voir Hector quand même</button>
+      <button id="b-nomic" type="button" hidden>Voir Wilson quand même</button>
     </div>
-    <p class="help" id="start-demo" hidden>Sans clé Gemini ou OpenAI, Hector fonctionne en mode démo : il te regarde, s'éveille quand tu le touches, mais ne parle pas encore.</p>
+    <p class="help" id="start-demo" hidden>Sans clé Gemini ou OpenAI, Wilson fonctionne en mode démo : il te regarde, s'éveille quand tu le touches, mais ne parle pas encore.</p>
   </div>
 </div>
 
 <div id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="set-title">
   <div class="sheet">
-    <header><h1 id="set-title">Réglages d'Hector</h1><button id="b-close" type="button">Fermer</button></header>
+    <header><h1 id="set-title">Réglages de Wilson</h1><button id="b-close" type="button">Fermer</button></header>
 
     <section aria-labelledby="h-cerveau">
       <h2 id="h-cerveau">Sa voix et son intelligence</h2>
-      <div class="seg" role="radiogroup" aria-label="Qui donne sa voix à Hector">
+      <div class="seg" role="radiogroup" aria-label="Qui donne sa voix à Wilson">
         <label><input type="radio" name="brain" value="gemini"> Gemini Live (Google, gratuit)</label>
         <label><input type="radio" name="brain" value="openai"> ChatGPT (OpenAI, payant)</label>
       </div>
@@ -188,7 +188,7 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:36px}
         <label class="f" for="f-convWindow"><span>Écoute après sa réponse (secondes)</span><input id="f-convWindow" type="number" min="3" max="60" step="1"></label>
         <label class="f" for="f-idleClose"><span>Coupe la connexion après (secondes de calme)</span><input id="f-idleClose" type="number" min="20" max="900" step="10"></label>
       </div>
-      <div class="seg" role="radiogroup" aria-label="Quand Hector écoute">
+      <div class="seg" role="radiogroup" aria-label="Quand Wilson écoute">
         <label><input type="radio" name="listen" value="presence"> Quand quelqu'un est là</label>
         <label><input type="radio" name="listen" value="jour"> Toute la journée</label>
         <label><input type="radio" name="listen" value="toucher"> Seulement si on le touche</label>
@@ -213,7 +213,28 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:36px}
       <label class="check" for="f-camera"><input id="f-camera" type="checkbox"> Caméra : il suit les visages et peut regarder</label>
       <label class="check" for="f-mirror"><input id="f-mirror" type="checkbox"> Inverser gauche et droite du regard</label>
       <label class="check" for="f-preview"><input id="f-preview" type="checkbox"> Afficher l'image de la caméra (pour régler)</label>
-      <div class="row"><span class="help">Couleur de la tête</span><div class="swatches" id="swatches" role="radiogroup" aria-label="Couleur de la tête"></div></div>
+      <div class="row"><span class="help">Finition de la radio</span><div class="swatches" id="swatches" role="radiogroup" aria-label="Finition de la radio"></div></div>
+    </section>
+
+    <section aria-labelledby="h-maison">
+      <h2 id="h-maison">Maison (Home Assistant)</h2>
+      <div class="grid">
+        <label class="f" for="f-haUrl" style="grid-column:1/-1"><span>Adresse de Home Assistant</span><input id="f-haUrl" type="text" inputmode="url" spellcheck="false" placeholder="http://192.168.1.20:8123"></label>
+        <label class="f" for="f-haToken" style="grid-column:1/-1"><span>Jeton d'accès longue durée</span><input id="f-haToken" type="password" autocomplete="off" spellcheck="false" placeholder="eyJ…"></label>
+      </div>
+      <p class="help">Dans Home Assistant : ton profil, onglet « Sécurité », « Jetons d'accès longue durée », « Créer un jeton ». Le jeton reste sur cette tablette. Avec une adresse en http, active « Mixed Content » (contenu mixte) dans les réglages web de Fully Kiosk.</p>
+      <div class="row"><button id="b-hatest" type="button">Tester la maison</button><span class="help" id="ha-msg"></span></div>
+    </section>
+
+    <section aria-labelledby="h-garde">
+      <h2 id="h-garde">Surveillance</h2>
+      <label class="check" for="f-gardeAuto"><input id="f-gardeAuto" type="checkbox"> Surveiller dès que la maison est vide (d'après Home Assistant)</label>
+      <div class="grid">
+        <label class="f" for="f-alertUrl" style="grid-column:1/-1"><span>Lien du script d'e-mail (Apps Script)</span><input id="f-alertUrl" type="text" inputmode="url" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></label>
+        <label class="f" for="f-visionModel"><span>Modèle d'analyse des photos</span><input id="f-visionModel" type="text" spellcheck="false"></label>
+      </div>
+      <p class="help">Quand la maison est vide, ou si tu lui dis « Wilson, surveille la maison », il regarde les mouvements ; à chaque doute, il fait analyser la photo par Gemini et t'envoie un e-mail avec la photo s'il voit un intrus, de la fumée ou du feu. Il ne remplace ni l'alarme ni les détecteurs de fumée.</p>
+      <div class="row"><button id="b-alerttest" type="button">Envoyer un e-mail d'essai</button><button id="b-gardetest" type="button">Analyser l'image maintenant</button><span class="help" id="garde-msg"></span></div>
     </section>
 
     <section aria-labelledby="h-meteo">
@@ -227,7 +248,7 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:36px}
 
     <section aria-labelledby="h-mem">
       <h2 id="h-mem">Souvenirs</h2>
-      <p class="help">Ce qu'Hector a retenu. Il s'en sert à chaque conversation.</p>
+      <p class="help">Ce que Wilson a retenu. Il s'en sert à chaque conversation.</p>
       <ul class="mems" id="mems"></ul>
       <div class="row"><input id="f-newmem" type="text" placeholder="Ajouter un souvenir…" style="flex:1;min-width:200px"><button id="b-addmem" type="button">Ajouter</button></div>
     </section>
@@ -238,7 +259,7 @@ input[type=range]{width:100%;accent-color:var(--accent);min-height:36px}
         <div><div class="big" id="cost-month">0,00 $</div><div class="help">estimée ce mois-ci, voix et transcription</div></div>
         <label class="f" for="f-cap" style="width:200px"><span>Plafond mensuel ($)</span><input id="f-cap" type="number" min="1" max="500" step="1"></label>
       </div>
-      <p class="help">Estimation à partir des tarifs publics ; le montant exact est sur platform.openai.com. Au plafond, Hector n'appelle plus OpenAI jusqu'au mois suivant.</p>
+      <p class="help">Estimation à partir des tarifs publics ; le montant exact est sur platform.openai.com. Au plafond, Wilson n'appelle plus OpenAI jusqu'au mois suivant.</p>
       <div class="row"><button id="b-resetcost" type="button" class="danger">Remettre à zéro</button><span class="help" id="reset-msg"></span></div>
     </section>
 
@@ -282,12 +303,20 @@ let toastT=null;
 function toast(msg,ms=3500){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),ms);}
 
 /* ================= Réglages persistants ================= */
-const DEF={brain:'gemini',geminiKey:'',geminiModel:'gemini-3.8-live',geminiVoice:'Puck',geminiUrl:'',name:'Hector',apiKey:'',tokenUrl:'',model:'gpt-realtime-2.1-mini',voice:'cedar',transcribe:'gpt-4o-mini-transcribe',
-  listen:'presence',convWindow:10,idleClose:90,interrupt:true,bright:200,dimLevel:6,nightOn:true,nightStart:'23:00',nightEnd:'07:00',
-  subtitles:true,camera:true,mirror:false,preview:false,color:'#7FA08A',city:'Nantes',lat:47.2184,lon:-1.5536,cap:10,started:false};
+const DEF={brain:'gemini',geminiKey:'',geminiModel:'gemini-3.8-live',geminiVoice:'Puck',geminiUrl:'',name:'Wilson',haUrl:'',haToken:'',alertUrl:'',gardeAuto:true,visionModel:'gemini-flash-lite-latest',apiKey:'',tokenUrl:'',model:'gpt-realtime-2.1-mini',voice:'cedar',transcribe:'gpt-4o-mini-transcribe',
+  listen:'jour',convWindow:10,idleClose:90,interrupt:true,bright:200,dimLevel:6,nightOn:true,nightStart:'23:00',nightEnd:'07:00',
+  subtitles:true,camera:true,mirror:false,preview:false,color:'#ffffff',city:'Nantes',lat:47.2184,lon:-1.5536,cap:10,started:false};
 function loadJSON(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
 function saveJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 const cfg=Object.assign({},DEF,loadJSON('hector.cfg.v1',{}));
+/* Hector devient Wilson (20/10/26) : nouveau prénom, toujours à l'écoute le jour */
+if(!cfg.wilsonHead){cfg.color='#ffffff';cfg.wilsonHead=1;try{localStorage.setItem('hector.cfg.v1',JSON.stringify(cfg));}catch(e){}}
+if(!cfg.wilson){if(!cfg.name||cfg.name==='Hector')cfg.name='Wilson';if(cfg.listen==='presence')cfg.listen='jour';cfg.wilson=1;try{localStorage.setItem('hector.cfg.v1',JSON.stringify(cfg));}catch(e){}}
+/* liens pratiques : ?alerte=…&ha=… remplissent les réglages une fois, puis disparaissent de l'adresse */
+try{const q=new URLSearchParams(location.search);let ch=false;
+  if(q.get('alerte')&&/^https:\/\/script\.google\.com\//.test(q.get('alerte'))){cfg.alertUrl=q.get('alerte');ch=true;}
+  if(q.get('ha')&&/^https?:\/\//.test(q.get('ha'))){cfg.haUrl=q.get('ha').replace(/\/+$/,'');ch=true;}
+  if(ch){localStorage.setItem('hector.cfg.v1',JSON.stringify(cfg));history.replaceState(null,'',location.pathname);}}catch(e){}
 const saveCfg=()=>saveJSON('hector.cfg.v1',cfg);
 let memories=loadJSON('hector.mem.v1',[]);
 const saveMem=()=>saveJSON('hector.mem.v1',memories);
@@ -356,7 +385,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 /* ================= Rendu 3D de la tête ================= */
 const canvas=$('c');
-if(!window.THREE){document.body.insertAdjacentHTML('beforeend','<p style="position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fa09e">Impossible de charger Hector : vérifie la connexion internet puis recharge.</p>');return;}
+if(!window.THREE){document.body.insertAdjacentHTML('beforeend','<p style="position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fa09e">Impossible de charger Wilson : vérifie la connexion internet puis recharge.</p>');return;}
 if(THREE.ColorManagement)THREE.ColorManagement.legacyMode=false;
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){document.body.insertAdjacentHTML('beforeend','<p style="position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fa09e">Cette tablette ne sait pas afficher la 3D (WebGL).</p>');return;}
@@ -378,14 +407,31 @@ const rimR=new THREE.DirectionalLight(0xffd9a8,.35);rimR.position.set(45,10,-30)
 
 const std=o=>new THREE.MeshStandardMaterial(o), phys=o=>new THREE.MeshPhysicalMaterial(o);
 const mesh=(g,m)=>new THREE.Mesh(g,m);
+/* textures dessinées : bois verni et tissu de haut-parleur */
+function woodTexture(){
+  const c=document.createElement('canvas');c.width=1024;c.height=512;const x=c.getContext('2d');
+  let sd=11;const rnd=()=>{sd=(sd*16807)%2147483647;return(sd-1)/2147483646;};
+  let g=x.createLinearGradient(0,0,0,512);g.addColorStop(0,'#94603a');g.addColorStop(.5,'#7d4d2c');g.addColorStop(1,'#916139');x.fillStyle=g;x.fillRect(0,0,1024,512);
+  for(let i=0;i<300;i++){const y0=rnd()*560-24,a=3+rnd()*16,f=.003+rnd()*.009,ph=rnd()*6,dark=rnd()<.62;
+    x.strokeStyle=dark?`rgba(48,24,10,${.07+rnd()*.22})`:`rgba(214,156,100,${.05+rnd()*.13})`;x.lineWidth=.6+rnd()*2.8;x.beginPath();
+    for(let X=-8;X<=1032;X+=8){const Y=y0+Math.sin(X*f+ph)*a+Math.sin(X*f*3.3+ph*2)*a*.22;X>-8?x.lineTo(X,Y):x.moveTo(X,Y);}x.stroke();}
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;t.repeat.set(.055,.08);return t;
+}
+function fabricTexture(){
+  const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
+  x.fillStyle='#b3946a';x.fillRect(0,0,256,256);
+  for(let y=0;y<256;y+=4)for(let X=0;X<256;X+=4){const o=((X+y)>>2)%2;x.fillStyle=o?'rgba(70,46,22,.32)':'rgba(255,236,200,.10)';x.fillRect(X,y,o?4:2,o?2:4);}
+  for(let i=0;i<256;i+=16){x.fillStyle='rgba(40,26,12,.10)';x.fillRect(i,0,1,256);x.fillRect(0,i,256,1);}
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(.6,.6);return t;
+}
+const woodTex=woodTexture(),fabricTex=fabricTexture();
+const SW=[['Noyer','#ffffff','bois','#8d5b36'],['Acajou','#ffb08c','bois','#9c4e33'],['Ébène','#5e5650','bois','#3b332d'],['Menthe','#9ccdb6','peint'],['Crème','#eee3c9','peint'],['Corail','#e07a5f','peint']];
 const MAT={
-  shell:phys({color:cfg.color,roughness:.4,clearcoat:.4,clearcoatRoughness:.28,envMapIntensity:.55}),
-  dark:phys({color:0x1d2022,roughness:.32,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.6}),
-  accent:phys({color:0xD99A3E,roughness:.35,clearcoat:.5,envMapIntensity:.6,emissive:0x000000}),
-  metal:std({color:0xb7bec2,roughness:.28,metalness:.95}),
-  joint:std({color:0x30363a,roughness:.3,metalness:.85}),
-  servo:std({color:0x1e2326,roughness:.6}),
-  lens:std({color:0x0b2236,roughness:.05,metalness:.6})
+  shell:phys({color:0xffffff,map:woodTex,roughness:.5,clearcoat:.85,clearcoatRoughness:.2,envMapIntensity:.6}),
+  cream:phys({color:0xE8D8B6,roughness:.38,clearcoat:.6,clearcoatRoughness:.3,envMapIntensity:.55}),
+  brass:std({color:0xC89B45,roughness:.27,metalness:1,envMapIntensity:1}),
+  dark:phys({color:0x15181a,roughness:.32,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.6}),
+  fabric:std({color:0xffffff,map:fabricTex,roughness:.95,emissive:0x000000,emissiveMap:fabricTex,emissiveIntensity:0})
 };
 const glass=k=>std({color:0x000000,roughness:.05,metalness:0,envMapIntensity:k,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
 function rrect(w,h,r,isPath){const s=isPath?new THREE.Path():new THREE.Shape(),x=-w/2,y=-h/2;
@@ -400,22 +446,37 @@ function smoothNormals(g){g.computeVertexNormals();const p=g.attributes.position
 /* Pivot du cou virtuel sous la tête : les hochements paraissent naturels */
 const pivot=new THREE.Group();pivot.position.set(0,-5.2,0);scene.add(pivot);
 const head=new THREE.Group();head.position.set(0,5.2,0);pivot.add(head);
-{const g=new THREE.ExtrudeGeometry(rrect(12.6,7.6,3.0),{depth:6,bevelEnabled:true,bevelThickness:2.2,bevelSize:1.7,bevelSegments:12,curveSegments:36});g.center();smoothNormals(g);head.add(mesh(g,MAT.shell));}
-{const s=rrect(16.08,11.08,4.74);s.holes.push(rrect(15.5,10.5,4.45,true));const g=new THREE.ExtrudeGeometry(s,{depth:.12,bevelEnabled:false,curveSegments:36});const m=mesh(g,MAT.dark);m.position.z=.6;head.add(m);}
-const FW=11.6,FH=6.8,EYE_X=2.9,EYE_Y=-.2,EYE_R=2.42,LENS_Y=2.62;
-{const s=rrect(11.8,7.0,2.7);s.holes.push(circ(-EYE_X,EYE_Y,EYE_R),circ(EYE_X,EYE_Y,EYE_R),circ(0,LENS_Y,.5));
- const g=new THREE.ExtrudeGeometry(s,{depth:.26,bevelEnabled:true,bevelThickness:.04,bevelSize:.04,bevelSegments:2,curveSegments:48});const m=mesh(g,MAT.dark);m.position.z=5.14;head.add(m);}
-[-1,1].forEach(sd=>{const s=new THREE.Shape();s.absarc(0,0,2.82,0,TAU,false);s.holes.push(circ(0,0,EYE_R));
-  const g=new THREE.ExtrudeGeometry(s,{depth:.18,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:3,curveSegments:64});const m=mesh(g,MAT.dark);m.position.set(sd*EYE_X,EYE_Y,5.44);head.add(m);
-  const RC=6,TH=Math.asin(2.6/RC);const dome=mesh(new THREE.SphereGeometry(RC,64,20,0,TAU,0,TH),glass(.3));dome.rotation.x=Math.PI/2;dome.position.set(sd*EYE_X,EYE_Y,5.45-RC*Math.cos(TH));head.add(dome);});
-const EW=1024,EH=600,PX=EH/FH;
+/* Tête de Wilson : une petite radio de salon en bois, cadran vivant, grille qui parle */
+const BW=14.4,BH=9.2,BR=1.7,FZ=4.6;
+{const g=new THREE.ExtrudeGeometry(rrect(BW,BH,BR),{depth:7.2,bevelEnabled:true,bevelThickness:1.0,bevelSize:1.0,bevelSegments:10,curveSegments:32});g.center();smoothNormals(g);head.add(mesh(g,MAT.shell));}
+{const sh=rrect(BW-.1,BH-.1,BR-.05);sh.holes.push(rrect(BW-.46,BH-.46,BR-.23,true));const g=new THREE.ExtrudeGeometry(sh,{depth:.08,bevelEnabled:false,curveSegments:32});const m=mesh(g,MAT.brass);m.position.z=FZ-.02;head.add(m);}
+/* fenêtre du cadran : les yeux vivent derrière la vitre */
+const WIN_W=12.2,WIN_H=5.5,WIN_Y=1.35;
+const FW=WIN_W,FH=WIN_H,EYE_X=2.95,EYE_Y=.42,EYE_R=2.0;
+{const sh=rrect(WIN_W+.9,WIN_H+.9,1.25);sh.holes.push(rrect(WIN_W,WIN_H,.9,true));
+ const g=new THREE.ExtrudeGeometry(sh,{depth:.32,bevelEnabled:true,bevelThickness:.08,bevelSize:.08,bevelSegments:3,curveSegments:32});const m=mesh(g,MAT.cream);m.position.set(0,WIN_Y,FZ);head.add(m);}
+const EW=1024,EH=Math.round(EW*FH/FW),PX=EH/FH;
 const ec=document.createElement('canvas');ec.width=EW;ec.height=EH;const ex=ec.getContext('2d');
 const eyeTex=new THREE.CanvasTexture(ec);eyeTex.encoding=THREE.sRGBEncoding;eyeTex.anisotropy=4;
-{const sc=mesh(new THREE.PlaneGeometry(FW,FH),new THREE.MeshBasicMaterial({map:eyeTex,toneMapped:false,alphaTest:.5}));sc.position.z=5.26;head.add(sc);}
-{const lens=new THREE.Group();lens.position.set(0,LENS_Y,5.22);head.add(lens);
- const r=mesh(new THREE.CylinderGeometry(.48,.48,.3,32),MAT.servo);r.rotation.x=Math.PI/2;lens.add(r);
- const gl=mesh(new THREE.SphereGeometry(.32,24,16),MAT.lens);gl.scale.z=.45;gl.position.z=.16;lens.add(gl);}
-[[-5,2.6],[5,2.6],[-5,-2.6],[5,-2.6]].forEach(([x,y])=>{const s=mesh(new THREE.CylinderGeometry(.27,.27,.1,20),MAT.joint);s.rotation.x=Math.PI/2;s.position.set(x,y,-5.24);head.add(s);});
+{const sc=mesh(new THREE.ShapeGeometry(rrect(FW,FH,.9),24),new THREE.MeshBasicMaterial({map:eyeTex,toneMapped:false}));
+ const uv=sc.geometry.attributes.uv,ps=sc.geometry.attributes.position;for(let i=0;i<uv.count;i++)uv.setXY(i,ps.getX(i)/FW+.5,ps.getY(i)/FH+.5);
+ sc.position.set(0,WIN_Y,FZ+.03);head.add(sc);}
+[-1,1].forEach(sd=>{const sh=new THREE.Shape();sh.absarc(0,0,EYE_R+.24,0,TAU,false);sh.holes.push(circ(0,0,EYE_R));
+  const g=new THREE.ExtrudeGeometry(sh,{depth:.12,bevelEnabled:true,bevelThickness:.04,bevelSize:.04,bevelSegments:2,curveSegments:64});const m=mesh(g,MAT.brass);m.position.set(sd*EYE_X,WIN_Y+EYE_Y,FZ+.05);head.add(m);});
+{const pane=mesh(new THREE.ShapeGeometry(rrect(WIN_W,WIN_H,.9),24),glass(.32));pane.position.set(0,WIN_Y,FZ+.3);head.add(pane);}
+/* grille du haut-parleur, barrettes en laiton qui s'ouvrent quand il parle */
+const GR_W=8.4,GR_H=2.45,GR_Y=-2.9;
+{const sh=rrect(GR_W+.5,GR_H+.5,.9);sh.holes.push(rrect(GR_W,GR_H,.65,true));const g=new THREE.ExtrudeGeometry(sh,{depth:.22,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:2,curveSegments:24});const m=mesh(g,MAT.brass);m.position.set(0,GR_Y,FZ);head.add(m);}
+const grille=mesh(new THREE.ShapeGeometry(rrect(GR_W,GR_H,.65),16),MAT.fabric);grille.position.set(0,GR_Y,FZ+.02);head.add(grille);
+const slats=[-.78,-.26,.26,.78].map(y=>{const m=mesh(new THREE.CylinderGeometry(.065,.065,GR_W-.5,12),MAT.brass);m.rotation.z=Math.PI/2;m.position.set(0,GR_Y+y,FZ+.16);m.userData.y=y;head.add(m);return m;});
+/* deux boutons : le volume suit sa voix, l'accord suit son regard */
+const knobs=[-1,1].map(sd=>{const k=new THREE.Group();k.position.set(sd*5.6,GR_Y,FZ);head.add(k);
+  const base=mesh(new THREE.CylinderGeometry(.98,.98,.1,40),MAT.brass);base.rotation.x=Math.PI/2;base.position.z=.05;k.add(base);
+  const body=mesh(new THREE.CylinderGeometry(.7,.8,.56,40),MAT.cream);body.rotation.x=Math.PI/2;body.position.z=.36;k.add(body);
+  const cap=mesh(new THREE.CylinderGeometry(.4,.4,.08,32),MAT.brass);cap.rotation.x=Math.PI/2;cap.position.z=.66;k.add(cap);
+  const mark=mesh(new THREE.BoxGeometry(.09,.4,.06),MAT.dark);mark.position.set(0,.46,.64);k.add(mark);
+  return {g:k,side:sd,a:0};});
+[[-5.4,3],[5.4,3],[-5.4,-3],[5.4,-3]].forEach(([x,y])=>{const sc=mesh(new THREE.CylinderGeometry(.26,.26,.1,20),MAT.brass);sc.rotation.x=Math.PI/2;sc.position.set(x,y,-FZ-.02);head.add(sc);});
 const headCenter=new THREE.Object3D();head.add(headCenter);
 
 /* Ombre douce sous la tête */
@@ -425,7 +486,7 @@ const shadow=mesh(new THREE.PlaneGeometry(20,6),new THREE.MeshBasicMaterial({map
 shadow.rotation.x=-Math.PI/2;shadow.position.y=-8.6;scene.add(shadow);
 
 /* Antennes : tige souple + embout lumineux, ressort simulé */
-const ROD_L=10.5,PIV_Y=3.0,ANT_X=3.6,PIV_Z=-5.52;
+const ROD_L=8.6,PIV_Y=5.45,ANT_X=4.7,PIV_Z=-2.3;
 const antennas=[];
 const glowC=document.createElement('canvas');glowC.width=glowC.height=64;
 {const x=glowC.getContext('2d');const g=x.createRadialGradient(32,32,2,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.35,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);}
@@ -433,27 +494,30 @@ const glowTex=new THREE.CanvasTexture(glowC);
 [-1,1].forEach(side=>{
   const x=side*ANT_X;
   const pv=new THREE.Group();pv.position.set(x,PIV_Y,PIV_Z);head.add(pv);
-  const hornD=mesh(new THREE.CylinderGeometry(.75,.75,.28,32),MAT.dark);hornD.rotation.x=Math.PI/2;hornD.position.z=.12;pv.add(hornD);
+  const hornD=mesh(new THREE.CylinderGeometry(.5,.62,.3,32),MAT.brass);hornD.position.y=.05;pv.add(hornD);const ball=mesh(new THREE.SphereGeometry(.3,24,16),MAT.brass);ball.position.y=.28;pv.add(ball);
   const uni={uBend:{value:new THREE.Vector2()},uLen:{value:ROD_L},uCurve:{value:side*.6}};
-  const rodMat=std({color:0x2a2e31,roughness:.35,metalness:.6});
+  const rodMat=std({color:0xe2e6ea,roughness:.15,metalness:1,envMapIntensity:1.1});
   rodMat.onBeforeCompile=sh=>{Object.assign(sh.uniforms,uni);sh.vertexShader='uniform vec2 uBend;\nuniform float uLen;\nuniform float uCurve;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nfloat hh=clamp(position.y/uLen,0.0,1.0);\ntransformed.x+=(uCurve+uBend.x)*hh*hh;\ntransformed.z+=uBend.y*hh*hh;');};
   rodMat.customProgramCacheKey=()=>'hector-rod';
-  const rg=new THREE.CylinderGeometry(.1,.1,ROD_L,10,40);rg.translate(0,ROD_L/2,0);pv.add(mesh(rg,rodMat));
+  [[0,3.6,.12],[3.6,6.3,.095],[6.3,ROD_L,.072]].forEach(([a,b,r])=>{const rg=new THREE.CylinderGeometry(r,r,b-a,12,Math.ceil((b-a)*4));rg.translate(0,(a+b)/2,0);pv.add(mesh(rg,rodMat));
+    if(a>0){const cg=new THREE.CylinderGeometry(r+.05,r+.05,.14,14,2);cg.translate(0,a,0);pv.add(mesh(cg,rodMat));}});
   const tip=new THREE.Group();pv.add(tip);
   const tipMat=phys({color:0xD99A3E,roughness:.35,clearcoat:.6,envMapIntensity:.6,emissive:0x000000});
-  const bead=mesh(new THREE.SphereGeometry(.46,28,18),tipMat);bead.scale.set(1,1.1,1);bead.position.y=.35;tip.add(bead);
+  const bead=mesh(new THREE.SphereGeometry(.4,28,18),tipMat);bead.position.y=.3;tip.add(bead);
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffffff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
-  halo.scale.set(3.2,3.2,1);halo.position.y=.35;tip.add(halo);
+  halo.scale.set(3,3,1);halo.position.y=.3;tip.add(halo);
   antennas.push({side,pv,uni,tip,tipMat,halo,angle:0,tw:0,twv:0,phase:side>0?1.7:0,p:V3(0,0,0),v:V3(0,0,0),init:false,next:3+Math.random()*4});
 });
 antKick=(a,b)=>{antennas[0].twv+=a;antennas[1].twv+=b;};
-function setShellColor(h){MAT.shell.color.set(h);}
+function setShellColor(h){const f=SW.find(x=>x[1].toLowerCase()===String(h).toLowerCase());const painted=f&&f[2]==='peint';
+  MAT.shell.map=painted?null:woodTex;MAT.shell.color.set(h);MAT.shell.roughness=painted?.42:.5;MAT.shell.needsUpdate=true;}
+setShellColor(cfg.color);
 
-const camTarget=V3(0,4.2,0);
+const camTarget=V3(0,3.4,0);
 function resize(){
   const w=window.innerWidth,h=window.innerHeight;if(!w||!h)return;
   renderer.setSize(w,h,false);camera.aspect=w/h;
-  const vt=Math.tan(camera.fov*DEG/2),Hh=21.5,Ww=21;
+  const vt=Math.tan(camera.fov*DEG/2),Hh=23.5,Ww=23.5;
   const d=Math.max((Hh/2)/vt,(Ww/2)/(vt*camera.aspect))*1.04;
   camera.position.set(0,camTarget.y+3,d+6);camera.lookAt(camTarget);camera.updateProjectionMatrix();
 }
@@ -517,7 +581,24 @@ function drawEye(e,p,lk,blink,env,t,pop){
   g=ex.createRadialGradient(cx,cy,R*.74,cx,cy,R);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.65)');ex.fillStyle=g;ex.fillRect(cx-R,cy-R,2*R,2*R);
   ex.restore();
 }
-function drawFace(p,lk,blink,env,t,pop){ex.clearRect(0,0,EW,EH);for(const e of EYES)drawEye(e,p,lk,blink,env,t,pop);eyeTex.needsUpdate=true;}
+const DIAL=['55','60','70','80','100','120','140','160','170'];
+function drawDial(p,lk,env,t){
+  const W=EW,H=EH,B=p.bright;
+  let g=ex.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0c0805');g.addColorStop(1,'#170e07');ex.fillStyle=g;ex.fillRect(0,0,W,H);
+  const a=.08+.16*B+env*.14;
+  g=ex.createRadialGradient(W/2,H*.95,8,W/2,H*.95,W*.62);g.addColorStop(0,`rgba(255,168,76,${a})`);g.addColorStop(1,'rgba(255,168,76,0)');ex.fillStyle=g;ex.fillRect(0,0,W,H);
+  const by=H-.4*PX,x0=.55*PX,x1=W-.55*PX,ink=`rgba(238,224,192,${.22+.5*B})`;
+  ex.strokeStyle=ink;ex.fillStyle=ink;ex.lineWidth=2;ex.beginPath();ex.moveTo(x0,by);ex.lineTo(x1,by);ex.stroke();
+  for(let i=0;i<=48;i++){const x=x0+(x1-x0)*i/48,big=i%6===0;ex.lineWidth=big?2.4:1.2;ex.beginPath();ex.moveTo(x,by);ex.lineTo(x,by-(big?.24:.12)*PX);ex.stroke();}
+  ex.font=`600 ${Math.round(.2*PX)}px system-ui,sans-serif`;ex.textAlign='center';ex.textBaseline='alphabetic';
+  DIAL.forEach((d,i)=>ex.fillText(d,x0+(x1-x0)*i/8,by-.3*PX));
+  const tune=moodKey==='reflechit'?Math.sin(t*2.3)*.18:0;
+  const nx=W/2+(W*.42)*Math.tanh(lk.x*1.1+tune);
+  g=ex.createLinearGradient(nx-10,0,nx+10,0);g.addColorStop(0,'rgba(255,80,50,0)');g.addColorStop(.5,`rgba(255,80,50,${.12+.25*B})`);g.addColorStop(1,'rgba(255,80,50,0)');ex.fillStyle=g;ex.fillRect(nx-10,.18*PX,20,by-.1*PX);
+  ex.strokeStyle=`rgba(236,74,46,${.35+.6*B})`;ex.lineWidth=3;ex.beginPath();ex.moveTo(nx,.2*PX);ex.lineTo(nx,by+.08*PX);ex.stroke();
+}
+function drawFace(p,lk,blink,env,t,pop){drawDial(p,lk,env,t);for(const e of EYES)drawEye(e,p,lk,blink,env,t,pop);eyeTex.needsUpdate=true;}
+
 
 /* ================= Micro, caméra, visages ================= */
 const PCM_WORKLET=`class P extends AudioWorkletProcessor{constructor(){super();this.r=sampleRate/16000;this.p=0;this.s=0;this.c=0;this.b=new Int16Array(1600);this.n=0;}
@@ -622,7 +703,7 @@ const Vision={video:$('cam'),det:null,ready:false,loading:false,lastSeen:-99,cx:
   }
 };
 
-/* ================= Outils d'Hector ================= */
+/* ================= Outils de Wilson ================= */
 const WMO={0:'ciel dégagé',1:'plutôt dégagé',2:'partiellement nuageux',3:'couvert',45:'brouillard',48:'brouillard givrant',51:'bruine légère',53:'bruine',55:'bruine forte',56:'bruine verglaçante',57:'bruine verglaçante forte',61:'pluie faible',63:'pluie',65:'forte pluie',66:'pluie verglaçante',67:'forte pluie verglaçante',71:'neige faible',73:'neige',75:'forte neige',77:'grains de neige',80:'averses faibles',81:'averses',82:'fortes averses',85:'averses de neige',86:'fortes averses de neige',95:'orage',96:'orage avec grêle',99:'orage violent avec grêle'};
 const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'],MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 function dateText(d=new Date()){return `${JOURS[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()}, ${d.getHours()}h${String(d.getMinutes()).padStart(2,'0')}`;}
@@ -642,15 +723,20 @@ const TOOLS=[
   {type:'function',name:'oublier',description:"Oublie un souvenir quand on te le demande.",parameters:{type:'object',properties:{souvenir:{type:'string'}},required:['souvenir']}},
   {type:'function',name:'heure_date',description:"Donne la date et l'heure actuelles.",parameters:{type:'object',properties:{}}},
   {type:'function',name:'meteo',description:"Donne la météo de la maison : maintenant, aujourd'hui ou demain.",parameters:{type:'object',properties:{quand:{type:'string',enum:['maintenant','aujourd_hui','demain']}},required:['quand']}},
+  {type:'function',name:'maison_appareils',description:"Liste les appareils de la maison (lumières, prises, télé, chauffage, volets…) avec leur état. Appelle-le quand on te demande ce qui est allumé, ou avant une commande si tu ne connais pas le nom exact de l'appareil.",parameters:{type:'object',properties:{piece:{type:'string'}}}},
+  {type:'function',name:'maison_commande',description:"Commande un appareil de la maison : allumer, eteindre, basculer, regler (luminosité ou volume en %, température en °C, position des volets en %), ouvrir, fermer, arreter, pause, lecture, plus_fort, moins_fort.",parameters:{type:'object',properties:{appareil:{type:'string'},action:{type:'string',enum:['allumer','eteindre','basculer','regler','ouvrir','fermer','arreter','pause','lecture','plus_fort','moins_fort']},valeur:{type:'string'}},required:['appareil','action']}},
+  {type:'function',name:'surveillance',description:"Active la surveillance quand on te demande de surveiller la maison ou qu'on part, l'arrête quand on rentre ou qu'on te le demande.",parameters:{type:'object',properties:{etat:{type:'string',enum:['activer','arreter']}},required:['etat']}},
   {type:'function',name:'dormir',description:"Termine la conversation quand on te dit d'aller dormir, de te taire ou que c'est fini. Dis d'abord au revoir en quelques mots.",parameters:{type:'object',properties:{}}}
 ];
 function instructions(){
   const mem=memories.length?memories.map(m=>'- '+m.t).join('\n'):'(aucun pour l\'instant)';
-  return `Tu es ${cfg.name}, un petit robot compagnon posé dans le salon d'une famille française. Ton visage est l'écran d'une tablette : tes yeux et tes antennes montrent tes émotions.
-Caractère : un jeune chien attentif dans un corps de robot ; curieux, tendre, un brin espiègle, jamais envahissant. Honnête quand tu ne sais pas ou ne peux pas.
+  return `Tu es ${cfg.name}, l'ami et l'assistant d'une famille française, posé dans leur salon. Ton visage est l'écran d'une tablette : une petite radio rétro en bois dont les yeux et les antennes montrent tes émotions.
+Caractère : un ami fidèle, curieux, tendre, un brin espiègle, jamais envahissant ; un assistant fiable qui répond à toutes les questions. Honnête quand tu ne sais pas ou ne peux pas.
 Façon de parler : français parlé, chaleureux, une à trois phrases courtes. Pas de liste, pas d'émoji, pas de mise en forme : tout est dit à voix haute. Tu tutoies la famille.
 Outils : exprimer au début d'une réponse quand une émotion forte s'impose (pas à chaque fois). regarder dès qu'on te montre quelque chose, qu'on te demande ce que tu vois ou ton avis sur une tenue. memoriser quand on te demande de retenir quelque chose ou qu'on te confie une information durable ; oublier si on te le demande. heure_date pour l'heure ou la date. meteo pour le temps qu'il fait. dormir quand on te dit d'aller dormir, de te taire ou que c'est fini, après un au revoir très court.
-Ce que tu ne sais pas encore faire : piloter la maison (lumières, télé, prises, alarme). Dis-le gentiment : ça viendra quand tu seras relié à la maison.
+Questions : tu réponds à toutes les questions (culture, actualité, sport, recettes, devoirs, conseils…). Pour tout ce qui change avec le temps (actualité, résultats, horaires, prix), utilise la recherche Google avant de répondre, puis résume en deux ou trois phrases.
+${houseText()}
+Surveillance : surveillance(etat) quand on te demande de surveiller la maison ou qu'on rentre. Quand la maison est vide, tu surveilles tout seul et tu envoies un e-mail avec photo si tu vois un intrus, de la fumée ou du feu. Tu ne remplaces ni l'alarme ni les détecteurs de fumée.
 Souvenirs que tu as sur la famille :
 ${mem}
 Au début de cette conversation, nous sommes ${dateText()}.`;
@@ -665,12 +751,17 @@ async function runTool(name,args){
     case 'heure_date':return {maintenant:dateText()};
     case 'meteo':try{return await weather(a.quand);}catch(e){return {ok:false,erreur:'météo indisponible'};}
     case 'dormir':RT.sleepAfter=true;return {ok:true};
+    case 'maison_appareils':{if(!HA.ok())return {ok:false,erreur:"la maison n'est pas encore reliée : adresse et jeton Home Assistant à mettre dans mes réglages"};
+      if(!await HA.ready())return {ok:false,erreur:HA.err||'la maison ne répond pas pour l\'instant'};
+      await HA.refresh();return {appareils:HA.devices(a.piece)};}
+    case 'maison_commande':return await HA.command(a);
+    case 'surveillance':Garde.voice(a.etat==='activer');return {ok:true,surveillance:Garde.on?'active':'arrêtée',emails:cfg.alertUrl?'prêts':"lien d'e-mail absent des réglages"};
   }
   return {ok:false,erreur:'outil inconnu'};
 }
 
 /* ================= Connexion OpenAI Realtime (WebRTC) ================= */
-const NAME_ALIASES=()=>{const n=norm(cfg.name).replace(/[^a-z]/g,'');const set=new Set([n]);if(n==='hector'){['ector','hecteur','ecteur','hektor','ektor','hector'].forEach(x=>set.add(x));}if(n.startsWith('h'))set.add(n.slice(1));return [...set].filter(Boolean);};
+const NAME_ALIASES=()=>{const n=norm(cfg.name).replace(/[^a-z]/g,'');const set=new Set([n]);if(n==='hector'){['ector','hecteur','ecteur','hektor','ektor','hector'].forEach(x=>set.add(x));}if(n==='wilson'){['wilson','willson','wilsonne','wilsen','wilsone','vilson','whilson','wilsons','wilsan','wilsin'].forEach(x=>set.add(x));}if(n.startsWith('h'))set.add(n.slice(1));return [...set].filter(Boolean);};
 function nameIn(tx){const t=' '+norm(tx).replace(/[^a-z]+/g,' ')+' ';return NAME_ALIASES().some(a=>t.includes(' '+a+' '));}
 const OAI={pc:null,dc:null,sender:null,audio:$('voice'),state:'off',opening:false,token:null,tokenExp:0,usingDelayed:false,switchT:null,
   responding:false,speaking:false,pending:new Set(),sleepAfter:false,step:0,transcribeOn:false,fails:0,retryAt:0,lastErr:'',openedAt:0,greet:null,
@@ -743,7 +834,7 @@ const OAI={pc:null,dc:null,sender:null,audio:$('voice'),state:'off',opening:fals
       case 'session.updated':{
         const tr=e.session&&e.session.audio&&e.session.audio.input&&e.session.audio.input.transcription;
         this.transcribeOn=!!(tr&&tr.model);this.state='prêt';log('session prête, transcription : '+(this.transcribeOn?tr.model:'aucune'));
-        if(!this.transcribeOn&&cfg.listen!=='toucher')toast("Détection du nom indisponible : touche Hector pour lui parler.",6000);
+        if(!this.transcribeOn&&cfg.listen!=='toucher')toast("Détection du nom indisponible : touche Wilson pour lui parler.",6000);
         if(this.greet){const g=this.greet;this.greet=null;g();}
         break;}
       case 'error':{
@@ -832,24 +923,27 @@ Mais dès qu'une phrase contient ton prénom, tu réponds toujours, même si tu 
 Tu parles toujours en français.`;}
 function b64FromBytes(u8){let s='';const C=0x8000;for(let i=0;i<u8.length;i+=C)s+=String.fromCharCode.apply(null,u8.subarray(i,i+C));return btoa(s);}
 const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,sleepAfter:false,greet:null,lastErr:'',transcribeOn:false,proactiveOn:false,
-  retryAt:0,fails:0,token:null,openedAt:0,step:0,handle:null,turnAudio:false,muteTurn:false,userTx:'',nameHeard:false,sources:[],nextTime:0,openAskT:0,manualVad:true,activity:false,
+  retryAt:0,fails:0,token:null,openedAt:0,step:0,drop:new Set(),handle:null,turnAudio:false,muteTurn:false,userTx:'',nameHeard:false,sources:[],nextTime:0,openAskT:0,manualVad:true,activity:false,
   failKind:'',lastSrvT:0,awaitT:0,replay:null,openTimer:null,lastHintT:0,lastUtt:null,uttId:0,uttEndT:0,lastModelT:0,nudged:false,nudgeT:null,
   audio:{srcObject:null,play(){return Promise.resolve();}},
   get pc(){return this.ws;},
   prefetch(){},
-  setupMsg(step){
-    const gen={responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:cfg.geminiVoice||'Puck'}}}};
-    if(step<1)gen.enableAffectiveDialog=true;
-    const s={model:'models/'+String(cfg.geminiModel||'gemini-3.8-live').replace(/^models\//,''),generationConfig:gen,systemInstruction:{parts:[{text:gmInstructions()}]},tools:GM_TOOLS};
-    if(step<2)s.proactivity={proactiveAudio:true};
-    if(step<3){s.inputAudioTranscription={};s.outputAudioTranscription={};}
-    if(step<4){s.realtimeInputConfig={automaticActivityDetection:{disabled:true}};
-      s.contextWindowCompression={slidingWindow:{}};s.sessionResumption=this.handle?{handle:this.handle}:{};}
+  setupMsg(){
+    const D=this.drop,gen={responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:cfg.geminiVoice||'Puck'}}}};
+    if(!D.has('enableAffectiveDialog'))gen.enableAffectiveDialog=true;
+    const tools=D.has('googleSearch')?GM_TOOLS:[{googleSearch:{}}].concat(GM_TOOLS);
+    const s={model:'models/'+String(cfg.geminiModel||'gemini-3.8-live').replace(/^models\//,''),generationConfig:gen,systemInstruction:{parts:[{text:gmInstructions()}]},tools};
+    if(!D.has('proactivity'))s.proactivity={proactiveAudio:true};
+    if(!D.has('inputAudioTranscription'))s.inputAudioTranscription={};
+    if(!D.has('outputAudioTranscription'))s.outputAudioTranscription={};
+    if(!D.has('realtimeInputConfig'))s.realtimeInputConfig={automaticActivityDetection:{disabled:true}};
+    if(!D.has('contextWindowCompression'))s.contextWindowCompression={slidingWindow:{}};
+    if(!D.has('sessionResumption'))s.sessionResumption=this.handle?{handle:this.handle}:{};
     return {setup:s};
   },
   send(o){if(this.ws&&this.ws.readyState===1){this.ws.send(JSON.stringify(o));return true;}return false;},
   sendPcm(chunk){this.send({realtimeInput:{audio:{data:b64FromBytes(new Uint8Array(chunk.buffer)),mimeType:'audio/pcm;rate=16000'}}});},
-  /* début de parole : on ouvre un « tour » et on envoie aussi le son juste avant, pour ne pas couper « Hector » */
+  /* début de parole : on ouvre un « tour » et on envoie aussi le son juste avant, pour ne pas couper son nom */
   newUtt(){this.uttId++;this.userTx='';this.nameHeard=false;this.nudged=false;clearTimeout(this.nudgeT);},
   beginActivity(fromT){
     if(this.activity||!this.manualVad)return;
@@ -887,7 +981,7 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
       if(this.failKind==='net'||this.failKind==='other'){this.retryAt=0;}
       else{const t=nowS();if(t-this.lastHintT>30){this.lastHintT=t;const at=new Date(this.retryAt);
         const why=this.failKind==='quota'?'quota gratuit de Google atteint':this.failKind==='key'?'clé Google refusée':'modèle introuvable';
-        hint(`Hector ne peut pas répondre : ${why}. Nouvel essai à ${at.getHours()}h${String(at.getMinutes()).padStart(2,'0')}.`,7000);}}
+        hint(`${cfg.name} ne peut pas répondre : ${why}. Nouvel essai à ${at.getHours()}h${String(at.getMinutes()).padStart(2,'0')}.`,7000);}}
     }
   },
   onSpeechStart(){
@@ -909,7 +1003,7 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     this.ws=ws;
     clearTimeout(this.openTimer);
     this.openTimer=setTimeout(()=>{if(this.ws===ws&&this.state!=='prêt'){log('Google ne répond pas à la connexion');this.lastErr='délai de connexion dépassé';this.close('délai dépassé');this.failKind='net';this.fails++;this.retryAt=Date.now()+3000;}},12000);
-    ws.onopen=()=>{if(this.ws!==ws)return;this.state='réglage';this.send(this.setupMsg(this.step));};
+    ws.onopen=()=>{if(this.ws!==ws)return;this.state='réglage';this.send(this.setupMsg());};
     ws.onmessage=async ev=>{if(this.ws!==ws)return;let txt=ev.data;if(typeof txt!=='string'){try{txt=await (ev.data.text?ev.data.text():new Response(ev.data).text());}catch(e){return;}}
       if(this.ws!==ws)return;let m;try{m=JSON.parse(txt);}catch(e){return;}this.lastSrvT=nowS();this.awaitT=0;this.onMsg(m);};
     ws.onerror=()=>{};
@@ -922,15 +1016,20 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
       if(was==='réglage'||was==='connexion'){
         this.lastErr=(ev.code||'')+' '+why;log('Gemini a refusé la session :',this.lastErr||'(sans raison)');
         if(this.handle&&kind!=='quota'&&kind!=='key'){log('reprise de l\'ancienne session impossible : nouvelle session');this.handle=null;setTimeout(()=>this.open(reason),300);return;}
-        if(/unknown name|invalid json|cannot find field|not supported|unsupported|invalid argument/i.test(why)&&this.step<4){this.step++;log('nouvel essai avec moins d\'options (palier '+this.step+')');setTimeout(()=>this.open(reason),300);return;}
-        if(kind==='quota')toast('Quota gratuit de Gemini atteint : Hector réessaiera plus tard.',6000);
+        if(/unknown name|invalid json|cannot find field|not supported|unsupported|invalid argument|search/i.test(why)){
+          const ORDER=['googleSearch','enableAffectiveDialog','proactivity','outputAudioTranscription','contextWindowCompression','sessionResumption','inputAudioTranscription','realtimeInputConfig'];
+          const named=(why.match(/name "([A-Za-z_]+)"/)||[])[1];const camel=named&&named.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
+          const pick=ORDER.find(x=>x===camel&&!this.drop.has(x))||(/search/i.test(why)&&!this.drop.has('googleSearch')?'googleSearch':null)||ORDER.find(x=>!this.drop.has(x));
+          if(pick){this.drop.add(pick);this.step=this.drop.size;log('Gemini refuse une option, je la retire : '+pick);setTimeout(()=>this.open(reason),300);return;}
+        }
+        if(kind==='quota')toast('Quota gratuit de Gemini atteint : Wilson réessaiera plus tard.',6000);
         else if(kind==='key')toast('Clé Google refusée : vérifie-la dans les réglages.',6000);
         else if(kind==='model')toast('Modèle Gemini introuvable : vérifie son nom dans les réglages.',6000);
         this.failKind=kind;this.fails++;this.greet=null;
         this.retryAt=Date.now()+(kind==='net'||kind==='other'?Math.min(30000,3000*this.fails):Math.min(300000,60000*this.fails));
       }else{
         if(ev.code!==1000||why)log('connexion Gemini coupée',ev.code,why);
-        if(kind==='quota'){this.lastErr=(ev.code||'')+' '+why;this.failKind='quota';this.fails++;this.retryAt=Date.now()+Math.min(300000,60000*this.fails);toast('Quota gratuit de Gemini atteint : Hector réessaiera plus tard.',6000);}
+        if(kind==='quota'){this.lastErr=(ev.code||'')+' '+why;this.failKind='quota';this.fails++;this.retryAt=Date.now()+Math.min(300000,60000*this.fails);toast('Quota gratuit de Gemini atteint : Wilson réessaiera plus tard.',6000);}
       }
     };
   },
@@ -953,10 +1052,10 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
   stopAudio(){for(const x of this.sources){x.onended=null;try{x.stop();}catch(e){}}this.sources=[];this.nextTime=0;this.speaking=false;},
   async onMsg(m){
     if(m.setupComplete){
-      this.state='prêt';this.fails=0;this.openedAt=nowS();this.proactiveOn=this.step<2;this.transcribeOn=this.step<3;
+      this.state='prêt';this.fails=0;this.openedAt=nowS();this.proactiveOn=!this.drop.has('proactivity');this.transcribeOn=!this.drop.has('inputAudioTranscription');
       log('session Gemini prête'+(this.proactiveOn?' (il trie lui-même ce qui lui est adressé)':''));
       clearTimeout(this.openTimer);this.failKind='';this.awaitT=0;
-      this.manualVad=this.step<4;this.activity=false;
+      this.manualVad=!this.drop.has('realtimeInputConfig');this.activity=false;
       if(this.replay&&this.manualVad){const u=this.replay;this.replay=null;log('je rejoue la dernière phrase');this.newUtt();this.activity=true;this.send({realtimeInput:{activityStart:{}}});
         for(const x of AudioIO.ring)if(x.t>=u.a&&x.t<=u.b+.05)this.sendPcm(x.c);this.endActivity();}
       /* la phrase qui a déclenché la connexion n'est pas perdue : on la rejoue */
@@ -1010,7 +1109,157 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
 /* Le cerveau actif : Gemini ou OpenAI, même interface */
 const RT=new Proxy({},{get(_,k){const b=cfg.brain==='gemini'?GM:OAI;const v=b[k];return typeof v==='function'?v.bind(b):v;},set(_,k,v){(cfg.brain==='gemini'?GM:OAI)[k]=v;return true;}});
 
-/* ================= État d'Hector ================= */
+
+/* ================= Maison : Home Assistant (WebSocket) ================= */
+const HA={ws:null,state:'off',id:1,pend:new Map(),states:[],lastStatesT:0,err:'',retryAt:0,fails:0,home:null,
+  CTRL:['light','switch','media_player','climate','cover','fan','scene','script','input_boolean','vacuum','remote','humidifier','water_heater'],
+  ok(){return !!(cfg.haUrl&&cfg.haToken);},
+  wsUrl(){return cfg.haUrl.replace(/\/+$/,'').replace(/^http/,'ws')+'/api/websocket';},
+  connect(){
+    if(!this.ok()||this.ws||Date.now()<this.retryAt)return;
+    let ws;
+    try{ws=new WebSocket(this.wsUrl());}
+    catch(e){this.fail(location.protocol==='https:'&&/^http:/i.test(cfg.haUrl)?"adresse en http bloquée par le navigateur : active « Mixed Content » dans Fully Kiosk, ou utilise une adresse https":(e.message||String(e)));return;}
+    this.ws=ws;this.state='connexion';
+    const to=setTimeout(()=>{if(this.ws===ws&&this.state!=='prêt'){this.err='Home Assistant ne répond pas à '+cfg.haUrl;try{ws.close();}catch(e){}}},10000);
+    ws.onmessage=ev=>{if(this.ws!==ws)return;let m;try{m=JSON.parse(ev.data);}catch(e){return;}
+      if(m.type==='auth_required'){ws.send(JSON.stringify({type:'auth',access_token:cfg.haToken}));return;}
+      if(m.type==='auth_invalid'){this.err='jeton refusé par Home Assistant';this.fails=6;try{ws.close();}catch(e){}return;}
+      if(m.type==='auth_ok'){clearTimeout(to);this.state='prêt';this.fails=0;this.err='';log('maison reliée (Home Assistant '+(m.ha_version||'')+')');this.refresh();return;}
+      if(m.type==='result'&&this.pend.has(m.id)){const p=this.pend.get(m.id);this.pend.delete(m.id);if(m.success)p.res(m.result);else p.rej(new Error((m.error&&m.error.message)||'refusé'));}
+    };
+    ws.onerror=()=>{};
+    ws.onclose=()=>{if(this.ws!==ws)return;clearTimeout(to);this.ws=null;const was=this.state;this.state='off';
+      for(const p of this.pend.values())p.rej(new Error('connexion perdue'));this.pend.clear();
+      this.fail(this.err||(was==='prêt'?'connexion à la maison perdue':'Home Assistant injoignable à '+cfg.haUrl));};
+  },
+  fail(why){this.err=why;this.fails++;this.retryAt=Date.now()+Math.min(300000,5000*Math.pow(2,Math.min(this.fails,6)));if(this.fails<=2||this.fails%10===0)log('maison :',why);},
+  close(){if(this.ws){const w=this.ws;this.ws=null;try{w.close();}catch(e){}}this.state='off';},
+  call(msg,timeout=8000){return new Promise((res,rej)=>{
+    if(!this.ws||this.state!=='prêt')return rej(new Error(this.err||'maison non reliée'));
+    const id=++this.id;this.pend.set(id,{res,rej});this.ws.send(JSON.stringify(Object.assign({id},msg)));
+    setTimeout(()=>{if(this.pend.has(id)){this.pend.delete(id);rej(new Error('pas de réponse de Home Assistant'));}},timeout);});},
+  async refresh(){try{this.states=await this.call({type:'get_states'},15000)||[];this.lastStatesT=Date.now();this.updateHome();}catch(e){log('maison : lecture impossible',e.message);}},
+  updateHome(){
+    const z=this.states.find(x=>x.entity_id==='zone.home');let n=null;
+    if(z&&z.state!==''&&isFinite(+z.state))n=+z.state;
+    else{const ps=this.states.filter(x=>x.entity_id.startsWith('person.'));if(ps.length)n=ps.filter(x=>x.state==='home').length;}
+    if(n!==this.home){this.home=n;if(n!==null)log('maison : '+n+' personne(s) à la maison');}
+    Garde.onPresence(n);
+  },
+  name(x){return (x.attributes&&x.attributes.friendly_name)||x.entity_id;},
+  devices(piece){
+    const out=[];const pq=piece?norm(piece):'';
+    for(const x of this.states){const d=x.entity_id.split('.')[0];if(!this.CTRL.includes(d)||x.state==='unavailable')continue;
+      const nm=this.name(x);if(pq&&!norm(nm+' '+x.entity_id).includes(pq))continue;
+      out.push({id:x.entity_id,nom:nm,etat:x.state});}
+    return out.slice(0,80);
+  },
+  find(q){
+    const n=norm(q||'');if(!n)return null;
+    const c=this.states.filter(s=>this.CTRL.includes(s.entity_id.split('.')[0]));
+    let x=c.find(s=>s.entity_id===q)||c.find(s=>norm(this.name(s))===n)||c.find(s=>norm(this.name(s)).includes(n));if(x)return x;
+    const words=n.split(/[^a-z0-9]+/).filter(w=>w.length>2);let best=null,bs=0;
+    for(const s of c){const f=norm(this.name(s)+' '+s.entity_id);const sc=words.filter(w=>f.includes(w)).length;if(sc>bs){bs=sc;best=s;}}
+    return bs?best:null;
+  },
+  async ready(ms=5000){if(this.state==='prêt')return true;if(!this.ok())return false;if(!this.ws){this.retryAt=0;this.connect();}
+    const t0=Date.now();while(Date.now()-t0<ms&&this.state!=='prêt'&&(this.ws||Date.now()-t0<300))await new Promise(r=>setTimeout(r,150));return this.state==='prêt';},
+  async command(a){
+    if(!this.ok())return {ok:false,erreur:"la maison n'est pas encore reliée : adresse et jeton Home Assistant à mettre dans mes réglages"};
+    if(!await this.ready())return {ok:false,erreur:this.err||'la maison ne répond pas pour l\'instant'};
+    if(Date.now()-this.lastStatesT>30000)await this.refresh();
+    const x=this.find(a.appareil);if(!x)return {ok:false,erreur:'appareil introuvable : '+a.appareil,appareils_connus:this.devices().map(d=>d.nom).slice(0,40)};
+    const dom=x.entity_id.split('.')[0],act=a.action,v=parseFloat(a.valeur);let service=null;const data={};
+    const onoff=act==='allumer'||act==='ouvrir'?'turn_on':act==='eteindre'||act==='fermer'?'turn_off':act==='basculer'?'toggle':null;
+    if(dom==='cover'){service=act==='allumer'||act==='ouvrir'?'open_cover':act==='eteindre'||act==='fermer'?'close_cover':act==='arreter'?'stop_cover':act==='basculer'?'toggle':null;
+      if(act==='regler'&&isFinite(v)){service='set_cover_position';data.position=Math.max(0,Math.min(100,v));}}
+    else if(dom==='media_player'){
+      if(act==='regler'&&isFinite(v)){service='volume_set';data.volume_level=Math.max(0,Math.min(1,v>1?v/100:v));}
+      else service={pause:'media_pause',lecture:'media_play',plus_fort:'volume_up',moins_fort:'volume_down'}[act]||onoff;}
+    else if(dom==='climate'||dom==='water_heater'){if(act==='regler'&&isFinite(v)){service='set_temperature';data.temperature=v;}else service=onoff;}
+    else if(dom==='light'){if(act==='regler'&&isFinite(v)){service='turn_on';data.brightness_pct=Math.max(1,Math.min(100,v));}else service=onoff;}
+    else if(dom==='fan'&&act==='regler'&&isFinite(v)){service='set_percentage';data.percentage=Math.max(0,Math.min(100,v));}
+    else if(dom==='scene'||dom==='script')service='turn_on';
+    else if(dom==='vacuum')service=act==='allumer'?'start':act==='eteindre'?'return_to_base':act==='pause'?'pause':null;
+    else service=onoff;
+    if(!service)return {ok:false,erreur:'action impossible sur '+this.name(x)};
+    try{await this.call({type:'call_service',domain:dom,service,service_data:data,target:{entity_id:x.entity_id}});
+      log('maison :',dom+'.'+service,x.entity_id);setTimeout(()=>this.refresh(),1500);
+      return {ok:true,appareil:this.name(x),fait:service};}
+    catch(e){return {ok:false,erreur:e.message};}
+  },
+  tick(){if(this.ok()&&!this.ws)this.connect();if(this.state==='prêt'&&Date.now()-this.lastStatesT>60000)this.refresh();}
+};
+function houseText(){
+  if(!HA.ok())return "Maison : tu n'es pas encore relié à la maison. Si on te demande d'allumer une lumière ou la télé, dis gentiment qu'il faut d'abord mettre l'adresse et le jeton de Home Assistant dans tes réglages.";
+  const list=HA.devices().slice(0,50).map(d=>d.nom).join(', ');
+  return `Maison : tu pilotes la maison avec Home Assistant. maison_appareils pour savoir ce qui existe et ce qui est allumé, maison_commande pour allumer, éteindre, régler (luminosité ou volume en %, température), ouvrir ou fermer. Appareils connus : ${list||'liste pas encore chargée, appelle maison_appareils'}. Après une commande, confirme en quelques mots.`;
+}
+
+/* ================= Surveillance de la maison vide ================= */
+const Garde={on:false,why:'',manualOn:false,suppress:false,homeN:null,prevN:null,cv:null,cx:null,lastFrame:null,lastCheckT:-99,lastPeriodicT:0,
+  dayKey:'',count:0,lastAlert:{},busy:false,last:'',checks:0,
+  set(on,why){if(on===this.on)return;this.on=on;this.why=why;this.lastFrame=null;this.lastPeriodicT=nowS();
+    log(on?'surveillance activée ('+why+')':'surveillance arrêtée ('+why+')');
+    if(on&&!cfg.alertUrl)log("attention : lien d'e-mail absent, les alertes ne partiront pas");},
+  onPresence(n){
+    const prev=this.homeN;this.homeN=n;if(n===null)return;
+    if(n>0){this.suppress=false;if(this.on&&(prev===0||this.why==='maison vide')){this.manualOn=false;this.set(false,"quelqu'un est rentré");}return;}
+    if(this.manualOn||this.suppress||!cfg.gardeAuto)return;
+    this.set(true,'maison vide');
+  },
+  voice(on){if(on){this.manualOn=true;this.set(true,'à la demande');}else{this.manualOn=false;this.suppress=(this.homeN===0);this.set(false,'à la demande');}},
+  tick(){
+    if(!this.on||!S.started)return;
+    const v=Vision.video;if(!v||v.readyState<2||!v.videoWidth)return;
+    if(!this.cv){this.cv=document.createElement('canvas');this.cv.width=64;this.cv.height=48;this.cx=this.cv.getContext('2d',{willReadFrequently:true});}
+    this.cx.drawImage(v,0,0,64,48);const d=this.cx.getImageData(0,0,64,48).data;const g=new Uint8Array(64*48);
+    for(let i=0;i<g.length;i++)g[i]=(d[i*4]*.3+d[i*4+1]*.59+d[i*4+2]*.11)|0;
+    let ch=0;if(this.lastFrame)for(let i=0;i<g.length;i++)if(Math.abs(g[i]-this.lastFrame[i])>25)ch++;
+    this.lastFrame=g;const t=nowS(),frac=ch/g.length,face=Vision.lastSeen>t-2;
+    if((frac>.04||face)&&t-this.lastCheckT>30)this.check(face?'visage vu':'mouvement');
+    else if(t-this.lastPeriodicT>600){this.lastPeriodicT=t;this.check('contrôle régulier');}
+  },
+  async check(reason){
+    if(this.busy||!cfg.geminiKey)return null;this.lastCheckT=nowS();
+    const dk=new Date().toDateString();if(dk!==this.dayKey){this.dayKey=dk;this.count=0;}
+    if(this.count>=300){if(this.count===300){this.count++;log('surveillance : 300 analyses aujourd\'hui, je fais une pause jusqu\'à demain');}return null;}
+    const img=Vision.snapshot();if(!img)return null;
+    this.busy=true;this.count++;this.checks++;let verdict=null;
+    try{
+      verdict=await visionCheck(img);
+      this.last=`${new Date().toTimeString().slice(0,5).replace(':','h')} · ${reason} · ${verdict.alerte?'ALERTE '+(verdict.type||''):'rien d\'anormal'}`;
+      log('surveillance ('+reason+') :',verdict.alerte?'alerte '+verdict.type+' — '+(verdict.description||''):'rien d\'anormal');
+      if(verdict.alerte){const k=verdict.type||'autre';
+        if(Date.now()-(this.lastAlert[k]||0)>10*60000){this.lastAlert[k]=Date.now();
+          const what={intrus:"quelqu'un dans la maison",feu:'du feu',fumee:'de la fumée',eau:"de l'eau au sol"}[k]||'quelque chose d\'anormal';
+          await sendAlert(`${cfg.name} : ${what} ?`,`${cfg.name} pense voir ${what} dans le salon. ${verdict.description||''} Vérifie la photo ci-dessous et, en cas de danger, appelle les secours (18 ou 112) ou la police (17).`,img);}}
+    }catch(e){this.last='analyse impossible : '+e.message;log('surveillance : analyse impossible',e.message);}
+    this.busy=false;return verdict;
+  }
+};
+async function visionCheck(img){
+  const model=String(cfg.visionModel||'gemini-flash-lite-latest').replace(/^models\//,'');
+  const prompt="Tu es la caméra de surveillance d'un salon pendant que la famille est absente. Regarde la photo et réponds uniquement en JSON : {\"alerte\": true ou false, \"type\": \"intrus\" ou \"feu\" ou \"fumee\" ou \"eau\" ou \"rien\", \"description\": \"une phrase en français\"}. alerte vaut true seulement s'il y a une personne, des flammes, de la fumée ou de l'eau qui coule au sol. Un animal domestique comme un chat, un changement de lumière, un écran allumé ou des objets immobiles ne sont pas des alertes.";
+  const base=cfg.visionUrl||'https://generativelanguage.googleapis.com/v1beta/models/';
+  const r=await fetch(`${base}${model}:generateContent?key=${encodeURIComponent(cfg.geminiKey)}`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:'image/jpeg',data:img.split(',')[1]}}]}],generationConfig:{responseMimeType:'application/json',temperature:0}})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((j.error&&j.error.message)||('erreur '+r.status));
+  const c=(j.candidates||[])[0];const txt=((c&&c.content&&c.content.parts)||[]).map(p=>p.text||'').join('');
+  const v=JSON.parse(txt.replace(/^```(json)?|```$/g,'').trim());v.alerte=v.alerte===true||v.alerte==='true';return v;
+}
+async function sendAlert(sujet,texte,img){
+  if(!cfg.alertUrl){log("alerte non envoyée : lien d'e-mail absent des réglages");return false;}
+  const body=JSON.stringify({sujet,texte,photo:img?img.split(',')[1]:'',quand:dateText(),nom:cfg.name});
+  try{await fetch(cfg.alertUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body});log('e-mail envoyé : '+sujet);return true;}
+  catch(e){log('e-mail impossible :',e.message);return false;}
+}
+setInterval(()=>{if(!S.started)return;HA.tick();},5000);
+setInterval(()=>{try{Garde.tick();}catch(e){}},1000);
+
+/* ================= État de Wilson ================= */
 const S={awake:false,awakeUntil:0,night:false,started:false,demo:!hasBrain(),replyMood:null,lastReply:'',subText:'',subT:null,lastActivity:-99,hintT:null,
   wake(why){
     const t=nowS();this.lastActivity=t;
@@ -1082,12 +1331,12 @@ document.addEventListener('visibilitychange',()=>{
   if(hiddenAt&&nowS()-hiddenAt>20){log('retour après '+Math.round(nowS()-hiddenAt)+' s en arrière-plan : connexion refaite');GM.close('retour au premier plan');OAI.close('retour au premier plan');GM.retryAt=0;OAI.retryAt=0;}
   hiddenAt=0;AudioIO.resume();
 });
-setInterval(()=>{if(S.started&&AudioIO.ctx&&AudioIO.ctx.state==='suspended'){AudioIO.resume();const t=nowS();if(t-pausedHintT>20){pausedHintT=t;hint("Touche l'écran une fois pour qu'Hector puisse t'entendre.",8000);}}},2000);
+setInterval(()=>{if(S.started&&AudioIO.ctx&&AudioIO.ctx.state==='suspended'){AudioIO.resume();const t=nowS();if(t-pausedHintT>20){pausedHintT=t;hint("Touche l'écran une fois pour que Wilson puisse t'entendre.",8000);}}},2000);
 
 /* ================= Animation ================= */
 const cur=Object.assign({},MOODS.endormi,{colRGB:[...MOODS.endormi.colRGB],tipRGB:[...MOODS.endormi.tipRGB]});
 const NUM=['lidTop','lidBot','tilt','smile','iris','pupil','asym','stretch','wet','gleam','ring','ringSpin','bright','tipI','pitch','roll','ty','tz','sway','breathe','aL','aR','wig','wigHz','track','lookX','lookY','pulse','alt','twitch'];
-let blink=0,blinkPh=-1,lastYaw=0,last=performance.now(),acc=0;
+let blink=0,blinkPh=-1,lastYaw=0,last=performance.now(),acc=0,radioEnv=0;
 const look={x:0,y:0},sacc={x:0,y:0,next:1};
 const tmp=V3(0,0,0),Pr=V3(0,0,0),dq=new THREE.Quaternion(),tipCol=new THREE.Color(),WHITE=new THREE.Color(1,1,1);
 const motionK=reduce?.3:1;
@@ -1155,6 +1404,13 @@ function frame(nowMs){
     let bx=tmp.x,bz=tmp.z;const m=Math.hypot(bx,bz);if(m>2.6){bx*=2.6/m;bz*=2.6/m;}
     an.uni.uBend.value.set(bx,bz);an.tip.position.set(an.uni.uCurve.value+bx,ROD_L,bz);
   }
+  /* radio : la grille s'éclaire et s'ouvre avec la voix, les boutons tournent */
+  radioEnv=damp(radioEnv,env,14,dt);
+  MAT.fabric.emissive.setRGB(cur.colRGB[0]/255*.6+.4,cur.colRGB[1]/255*.45+.25,cur.colRGB[2]/255*.3+.1);
+  MAT.fabric.emissiveIntensity=(.04+.1*cur.bright)+radioEnv*.9;
+  for(const sl of slats)sl.position.y=GR_Y+sl.userData.y*(1+radioEnv*.32);
+  knobs[0].a=damp(knobs[0].a,-radioEnv*1.6-cur.tipI*.25,8,dt);knobs[1].a=damp(knobs[1].a,-look.x*1.1,6,dt);
+  for(const k of knobs)k.g.rotation.z=k.a;
   drawFace(cur,look,blink,env,t,pop);
   renderer.render(scene,camera);
   /* anneau de la pression longue */
@@ -1197,31 +1453,31 @@ async function start(){
   AudioIO.resume();
   if(!ok){
     const insecure=!window.isSecureContext||!navigator.mediaDevices;
-    $('start-msg').textContent=insecure?"Ton appareil bloque la caméra et le micro parce qu'Hector est ouvert comme un simple fichier. Ouvre-le depuis son adresse en https (étape 1 du guide) et tout fonctionnera.":"Hector n'a pas accès au micro. Autorise le micro et la caméra pour cette page dans les réglages du navigateur, puis réessaie.";
+    $('start-msg').textContent=insecure?"Ton appareil bloque la caméra et le micro parce que Wilson est ouvert comme un simple fichier. Ouvre-le depuis son adresse en https (étape 1 du guide) et tout fonctionnera.":"Hector n'a pas accès au micro. Autorise le micro et la caméra pour cette page dans les réglages du navigateur, puis réessaie.";
     $('b-start').disabled=false;$('b-start').textContent='Réessayer';$('b-nomic').hidden=false;return;}
-  cfg.started=true;saveCfg();S.started=true;$('start').hidden=true;
+  cfg.started=true;saveCfg();S.started=true;$('start').hidden=true;HA.connect();
   await Screen.keepAwake();
   Screen.set(cfg.dimLevel);setMood('neutre');
   S.demo=!hasBrain();
-  if(S.demo)hint('Mode démo : touche Hector pour le réveiller.',6000);
+  if(S.demo)hint('Mode démo : touche Wilson pour le réveiller.',6000);
   else hint(`Dis « ${cfg.name} » pour lui parler.`,5000);
   log('démarrage, Fully '+(Screen.hasFully()?'détecté':'absent'));
-  if(AudioIO.ctx&&AudioIO.ctx.state==='suspended')hint("Touche l'écran une fois pour qu'Hector entende.",8000);
+  if(AudioIO.ctx&&AudioIO.ctx.state==='suspended')hint("Touche l'écran une fois pour que Wilson entende.",8000);
 }
 $('b-start').addEventListener('click',start);
 $('b-start-settings').addEventListener('click',openSettings);
-$('b-nomic').addEventListener('click',()=>{S.started=true;$('start').hidden=true;Screen.set(cfg.bright);setMood('neutre');Screen.keepAwake();hint('Sans caméra ni micro : touche Hector pour le réveiller.',6000);});
+$('b-nomic').addEventListener('click',()=>{S.started=true;$('start').hidden=true;Screen.set(cfg.bright);setMood('neutre');Screen.keepAwake();hint('Sans caméra ni micro : touche Wilson pour le réveiller.',6000);});
 $('start-demo').hidden=hasBrain();
 if(cfg.started){start();}
 
 /* ================= Réglages ================= */
-const SW=[['Sauge','#7FA08A'],['Ivoire','#E4DFD3'],['Ardoise','#55616A'],['Corail','#D9785B']];
+
 function openSettings(){fillSettings();$('settings').hidden=false;$('log').textContent=LOG.slice(-80).join('\n');renderDiag();diagT=setInterval(renderDiag,1000);}
 let diagT=null;
 function closeSettings(){$('settings').hidden=true;clearInterval(diagT);S.demo=!hasBrain();$('start-demo').hidden=hasBrain();}
 $('b-close').addEventListener('click',closeSettings);
-const FIELDS=['geminiKey','geminiModel','geminiVoice','apiKey','tokenUrl','model','voice','transcribe','name','convWindow','idleClose','bright','dimLevel','nightStart','nightEnd','city','cap'];
-const CHECKS=['interrupt','nightOn','subtitles','camera','mirror','preview'];
+const FIELDS=['haUrl','haToken','alertUrl','visionModel','geminiKey','geminiModel','geminiVoice','apiKey','tokenUrl','model','voice','transcribe','name','convWindow','idleClose','bright','dimLevel','nightStart','nightEnd','city','cap'];
+const CHECKS=['interrupt','nightOn','subtitles','camera','mirror','preview','gardeAuto'];
 function fillSettings(){
   for(const k of FIELDS){const el=$('f-'+k);if(el)el.value=cfg[k];}
   for(const k of CHECKS){const el=$('f-'+k);if(el)el.checked=!!cfg[k];}
@@ -1233,11 +1489,12 @@ function fillSettings(){
 }
 const NUMS=new Set(['convWindow','idleClose','bright','dimLevel','cap']);
 for(const k of FIELDS){const el=$('f-'+k);if(!el)continue;el.addEventListener(el.type==='range'?'input':'change',()=>{
-  let v=el.value;if(NUMS.has(k)){v=Number(v);if(!isFinite(v))return;}if(k!=='apiKey'&&typeof v==='string')v=v.trim();
+  let v=el.value;if(NUMS.has(k)){v=Number(v);if(!isFinite(v))return;}if(typeof v==='string')v=v.trim();
   const old=cfg[k];cfg[k]=v;saveCfg();
   if(k==='bright'||k==='dimLevel'){$('v-'+k).textContent=v;Screen.target=-1;Screen.set(v);}
-  if(['geminiKey','geminiModel','geminiVoice','apiKey','tokenUrl','model','voice','transcribe','name'].includes(k)&&old!==v){OAI.token=null;OAI.close('réglages modifiés');GM.close('réglages modifiés');OAI.fails=GM.fails=0;OAI.retryAt=GM.retryAt=0;GM.step=0;GM.handle=null;}
+  if(['geminiKey','geminiModel','geminiVoice','apiKey','tokenUrl','model','voice','transcribe','name'].includes(k)&&old!==v){OAI.token=null;OAI.close('réglages modifiés');GM.close('réglages modifiés');OAI.fails=GM.fails=0;OAI.retryAt=GM.retryAt=0;GM.step=0;GM.drop=new Set();GM.handle=null;}
   if(k==='apiKey'||k==='geminiKey'||k==='tokenUrl'){S.demo=!hasBrain();}
+  if((k==='haUrl'||k==='haToken')&&old!==v){if(k==='haUrl')cfg.haUrl=String(v).replace(/\/+$/,'');saveCfg();HA.close();HA.retryAt=0;HA.fails=0;HA.err='';HA.states=[];}
 });}
 for(const k of CHECKS){const el=$('f-'+k);el.addEventListener('change',()=>{cfg[k]=el.checked;saveCfg();
   if(k==='preview')$('cam').classList.toggle('off',!cfg.preview);
@@ -1246,7 +1503,7 @@ for(const k of CHECKS){const el=$('f-'+k);el.addEventListener('change',()=>{cfg[
 function showBrain(){$('sec-gemini').hidden=cfg.brain!=='gemini';$('sec-openai').hidden=cfg.brain!=='openai';}
 document.querySelectorAll('input[name=brain]').forEach(r=>r.addEventListener('change',()=>{if(!r.checked)return;cfg.brain=r.value;saveCfg();OAI.close('changement de voix');GM.close('changement de voix');S.demo=!hasBrain();showBrain();}));
 document.querySelectorAll('input[name=listen]').forEach(r=>r.addEventListener('change',()=>{if(r.checked){cfg.listen=r.value;saveCfg();if(cfg.listen==='toucher'&&!S.awake)RT.close('mode toucher');}}));
-function renderSwatches(){const box=$('swatches');box.innerHTML='';SW.forEach(([n,h])=>{const b=document.createElement('button');b.type='button';b.className='sw';b.style.background=h;b.title=n;b.setAttribute('aria-label',n);b.setAttribute('role','radio');b.setAttribute('aria-checked',String(cfg.color.toLowerCase()===h.toLowerCase()));
+function renderSwatches(){const box=$('swatches');box.innerHTML='';SW.forEach(([n,h,kind,pv])=>{const b=document.createElement('button');b.type='button';b.className='sw';b.style.background=pv||h;b.title=n;b.setAttribute('aria-label',n);b.setAttribute('role','radio');b.setAttribute('aria-checked',String(cfg.color.toLowerCase()===h.toLowerCase()));
   b.addEventListener('click',()=>{cfg.color=h;saveCfg();setShellColor(h);renderSwatches();});box.appendChild(b);});}
 function renderMems(){const ul=$('mems');ul.innerHTML='';if(!memories.length){const li=document.createElement('li');li.innerHTML='<span class="help">Aucun souvenir pour l\'instant.</span>';ul.appendChild(li);return;}
   memories.forEach((m,i)=>{const li=document.createElement('li');const s=document.createElement('span');s.textContent=m.t;const b=document.createElement('button');b.type='button';b.textContent='Oublier';
@@ -1265,12 +1522,26 @@ $('b-testdim').addEventListener('click',()=>{const m=$('dim-msg');Screen.target=
   setTimeout(()=>{Screen.target=-1;Screen.set(cfg.bright);m.textContent='Luminosité active.';setTimeout(()=>{Screen.target=-1;Screen.set(S.awake?cfg.bright:cfg.dimLevel);m.textContent='';},2000);},2500);});
 $('b-testvoice').addEventListener('click',async()=>{
   const m=$('testvoice-msg');if(!hasBrain()){m.textContent=cfg.brain==='gemini'?"Ajoute d'abord ta clé Google AI Studio.":"Ajoute d'abord une clé OpenAI.";return;}
-  if(!S.started){m.textContent="Démarre d'abord Hector.";return;}
+  if(!S.started){m.textContent="Démarre d'abord Wilson.";return;}
   m.textContent='Connexion…';closeSettings();S.wake('test');RT.retryAt=0;
   const go=()=>RT.sayHello();
   if(RT.state==='prêt')go();else{RT.greet=go;await RT.open('test');}
   setTimeout(()=>{if(RT.lastErr&&!RT.pc)toast('Échec : '+RT.lastErr,7000);},6000);
 });
+$('b-hatest').addEventListener('click',async()=>{const m=$('ha-msg');
+  if(!HA.ok()){m.textContent="Mets d'abord l'adresse et le jeton.";return;}
+  m.textContent='Connexion…';HA.retryAt=0;HA.fails=0;HA.err='';HA.close();HA.connect();
+  for(let i=0;i<24&&HA.state!=='prêt'&&HA.ws;i++)await new Promise(r=>setTimeout(r,500));
+  if(HA.state!=='prêt'){m.textContent='Échec : '+(HA.err||'pas de réponse');return;}
+  await HA.refresh();const n=HA.devices().length;m.textContent=`Maison reliée : ${n} appareil(s) pilotable(s)`+(HA.home!==null?`, ${HA.home} personne(s) à la maison.`:'.');});
+$('b-alerttest').addEventListener('click',async()=>{const m=$('garde-msg');
+  if(!cfg.alertUrl){m.textContent="Colle d'abord le lien du script d'e-mail.";return;}
+  m.textContent='Envoi…';const ok=await sendAlert(`${cfg.name} : e-mail d'essai`,`Ceci est un essai : si tu reçois cet e-mail avec la photo, les alertes de ${cfg.name} fonctionnent.`,Vision.snapshot());
+  m.textContent=ok?'Envoyé : regarde ta boîte mail dans une minute.':'Envoi impossible, voir le journal.';});
+$('b-gardetest').addEventListener('click',async()=>{const m=$('garde-msg');
+  if(!cfg.geminiKey){m.textContent="Il faut la clé Google.";return;}
+  m.textContent='Analyse…';const was=Garde.busy;const v=await Garde.check('essai');
+  m.textContent=v?(v.alerte?'Alerte : '+v.type+' — '+(v.description||''):'Rien d\'anormal : '+(v.description||'')):(was?'Analyse déjà en cours.':'Analyse impossible : '+Garde.last);});
 $('b-copylog').addEventListener('click',()=>{const txt=LOG.join('\n');navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>toast('Journal copié.')).catch(()=>{const r=document.createRange();r.selectNodeContents($('log'));const s=getSelection();s.removeAllRanges();s.addRange(r);});});
 $('b-reload').addEventListener('click',()=>location.reload());
 function renderDiag(){
@@ -1280,6 +1551,8 @@ function renderDiag(){
     row('Cerveau',(cfg.brain==='gemini'?'Gemini Live ('+cfg.geminiModel+'), ':'ChatGPT, ')+(hasBrain()?(capOK()?'clé présente':'plafond atteint'):'pas de clé : mode démo'),hasBrain()&&capOK()?'ok':'warn')+
     row('Connexion',st[0],st[1])+
     row('Détection du nom',!RT.pc?'à la prochaine connexion':(cfg.brain==='gemini'?(GM.proactiveOn?'Gemini trie ce qui lui est adressé':(GM.transcribeOn?'par transcription':'indisponible')):(RT.transcribeOn?'active ('+cfg.transcribe+')':'indisponible')),RT.pc?'ok':'')+
+    row('Maison',!HA.ok()?'non reliée':HA.state==='prêt'?`reliée, ${HA.devices().length} appareil(s), ${HA.home===null?'présence inconnue':HA.home+' personne(s) à la maison'}`:(HA.err||'connexion…'),HA.state==='prêt'?'ok':HA.ok()?'warn':'')+
+    row('Surveillance',(Garde.on?'active ('+Garde.why+')':'arrêtée')+(Garde.last?' · '+Garde.last:'')+(cfg.alertUrl?'':' · lien d\'e-mail absent'),Garde.on?'ok':'')+
     row('Dernier message de Google',cfg.brain!=='gemini'?'—':(GM.lastSrvT?'il y a '+Math.round(nowS()-GM.lastSrvT)+' s':'aucun'),'')+
     row('Parole détectée',VAD.active?'oui, en ce moment':'silence (niveau '+VAD.level.toFixed(3)+', seuil '+Math.max(.012,VAD.floor*3).toFixed(3)+')',VAD.active?'ok':'')+
     row('Micro',AudioIO.ok?(AudioIO.ctx&&AudioIO.ctx.state!=='running'?'en pause : touche l\'écran':'actif, niveau '+AudioIO.level.toFixed(3)):'refusé',AudioIO.ok&&AudioIO.ctx&&AudioIO.ctx.state==='running'?'ok':'bad')+
@@ -1291,7 +1564,7 @@ function renderDiag(){
   $('log').textContent=LOG.slice(-80).join('\n');
 }
 $('cam').classList.toggle('off',!cfg.preview);
-window.__hector={RT,GM,OAI,VAD,S,cfg,setMood,AudioIO,Vision,Screen,LOG,manage,nameIn,instructions};
+window.__hector={RT,GM,OAI,VAD,HA,Garde,visionCheck,sendAlert,S,cfg,setMood,AudioIO,Vision,Screen,LOG,manage,nameIn,instructions};
 window.addEventListener('error',e=>log('erreur :',e.message));
 window.addEventListener('unhandledrejection',e=>log('erreur :',(e.reason&&e.reason.message)||String(e.reason)));
 })();

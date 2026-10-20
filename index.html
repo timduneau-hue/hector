@@ -349,7 +349,7 @@ const Screen={native:false,level:-1,target:-1,fadeT:null,wake:null,
     try{if('wakeLock' in navigator&&document.visibilityState==='visible'){this.wake=await navigator.wakeLock.request('screen');this.wake.addEventListener('release',()=>{this.wake=null;});}}catch(e){log('verrou écran refusé',e.message||String(e));}
   }
 };
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')Screen.keepAwake();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){Screen.keepAwake();if(typeof AudioIO!=='undefined')AudioIO.resume();}});
 
 /* ================= Rendu 3D de la tête ================= */
 const canvas=$('c');
@@ -552,7 +552,11 @@ const AudioIO={ctx:null,stream:null,raw:null,delayed:null,an:null,buf:null,level
   },
   resume(){if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});},
   ring:[],
-  onPcm(chunk){this.ring.push(chunk);if(this.ring.length>30)this.ring.shift();if(GM.state==='prêt'&&(cfg.interrupt||!GM.speaking))GM.sendPcm(chunk);},
+  onPcm(chunk){
+    const t=nowS();this.ring.push({t,c:chunk});if(this.ring.length>80)this.ring.shift();
+    VAD.feed(chunk,t);
+    if(GM.state==='prêt'&&(!GM.manualVad||GM.activity))GM.sendPcm(chunk);
+  },
   attachOutput(stream){try{const s=this.ctx.createMediaStreamSource(stream);this.outAn=this.ctx.createAnalyser();this.outAn.fftSize=512;this.outBuf=new Float32Array(this.outAn.fftSize);s.connect(this.outAn);}catch(e){log('analyse de la voix impossible',e.message);}},
   rms(an,buf){an.getFloatTimeDomainData(buf);let s=0;for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i];return Math.sqrt(s/buf.length);},
   tick(t,dt){
@@ -777,6 +781,26 @@ const OAI={pc:null,dc:null,sender:null,audio:$('voice'),state:'off',opening:fals
 
 
 /* ================= Connexion Gemini Live (WebSocket) ================= */
+/* Détection de parole faite sur la tablette : Gemini 3.8 Live n'en fait pas lui-même */
+const VAD={active:false,loudN:0,quietN:0,floor:.006,startT:-99,endT:-99,level:0,
+  feed(chunk,t){
+    let s=0;for(let i=0;i<chunk.length;i++){const v=chunk[i]/32768;s+=v*v;}
+    const r=Math.sqrt(s/chunk.length);this.level=r;
+    if(!this.active)this.floor=r<this.floor?this.floor*.6+r*.4:this.floor*.985+r*.015;
+    this.floor=Math.max(.002,Math.min(this.floor,.05));
+    const echo=GM.speaking||AudioIO.lastOut>t-.3;
+    const thr=echo?Math.max(.035,this.floor*5):Math.max(.012,this.floor*3);
+    const loud=r>thr;
+    if(!this.active){
+      this.loudN=loud?this.loudN+1:0;
+      if(this.loudN>=(echo?3:2)){this.active=true;this.quietN=0;this.startT=t-this.loudN*.1-.4;GM.onSpeechStart();}
+    }else{
+      this.quietN=loud?0:this.quietN+1;
+      if(this.quietN>=8||t-this.startT>30){this.active=false;this.loudN=0;this.endT=t;GM.onSpeechEnd();}
+    }
+  }
+};
+
 const GM_URL='wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 const GM_TOOLS=[{functionDeclarations:TOOLS.map(t=>{const d={name:t.name,description:t.description};const pr=(t.parameters&&t.parameters.properties)||{};
   if(Object.keys(pr).length){const p={};for(const k in pr){p[k]={type:'STRING'};if(pr[k].enum)p[k].enum=pr[k].enum;}d.parameters={type:'OBJECT',properties:p,required:(t.parameters.required||[])};}return d;})}];
@@ -785,7 +809,7 @@ Règle d'or : tu ne parles que si l'on s'adresse à toi. On s'adresse à toi qua
 Tu parles toujours en français.`;}
 function b64FromBytes(u8){let s='';const C=0x8000;for(let i=0;i<u8.length;i+=C)s+=String.fromCharCode.apply(null,u8.subarray(i,i+C));return btoa(s);}
 const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,sleepAfter:false,greet:null,lastErr:'',transcribeOn:false,proactiveOn:false,
-  retryAt:0,fails:0,token:null,openedAt:0,step:0,handle:null,turnAudio:false,muteTurn:false,userTx:'',nameHeard:false,sources:[],nextTime:0,preroll:false,
+  retryAt:0,fails:0,token:null,openedAt:0,step:0,handle:null,turnAudio:false,muteTurn:false,userTx:'',nameHeard:false,sources:[],nextTime:0,openAskT:0,manualVad:true,activity:false,
   audio:{srcObject:null,play(){return Promise.resolve();}},
   get pc(){return this.ws;},
   prefetch(){},
@@ -795,17 +819,32 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     const s={model:'models/'+String(cfg.geminiModel||'gemini-3.8-live').replace(/^models\//,''),generationConfig:gen,systemInstruction:{parts:[{text:gmInstructions()}]},tools:GM_TOOLS};
     if(step<2)s.proactivity={proactiveAudio:true};
     if(step<3){s.inputAudioTranscription={};s.outputAudioTranscription={};}
-    if(step<4){s.realtimeInputConfig={automaticActivityDetection:{startOfSpeechSensitivity:'START_SENSITIVITY_LOW',endOfSpeechSensitivity:'END_SENSITIVITY_LOW',prefixPaddingMs:300,silenceDurationMs:700}};
+    if(step<4){s.realtimeInputConfig={automaticActivityDetection:{disabled:true}};
       s.contextWindowCompression={slidingWindow:{}};s.sessionResumption=this.handle?{handle:this.handle}:{};}
     return {setup:s};
   },
   send(o){if(this.ws&&this.ws.readyState===1){this.ws.send(JSON.stringify(o));return true;}return false;},
   sendPcm(chunk){this.send({realtimeInput:{audio:{data:b64FromBytes(new Uint8Array(chunk.buffer)),mimeType:'audio/pcm;rate=16000'}}});},
+  /* début de parole : on ouvre un « tour » et on envoie aussi le son juste avant, pour ne pas couper « Hector » */
+  beginActivity(fromT){
+    if(this.activity||!this.manualVad)return;
+    if(this.speaking&&!cfg.interrupt)return;
+    this.activity=true;this.send({realtimeInput:{activityStart:{}}});
+    for(const x of AudioIO.ring)if(x.t>=fromT)this.sendPcm(x.c);
+  },
+  endActivity(){if(!this.activity)return;this.activity=false;this.send({realtimeInput:{activityEnd:{}}});},
+  onSpeechStart(){
+    if(S.awake&&!this.speaking)setMood('ecoute');
+    if(this.state==='prêt')this.beginActivity(VAD.startT);
+  },
+  onSpeechEnd(){
+    if(this.activity){this.endActivity();if(S.awake&&!this.speaking)setMood('reflechit');}
+  },
   open(reason){
     if(this.ws||this.opening)return;
     if(!hasBrain()||!AudioIO.raw)return;
     if(Date.now()<this.retryAt)return;
-    this.opening=true;this.state='connexion';this.preroll=(reason==='son');log('connexion à Gemini ('+reason+')');
+    this.opening=true;this.state='connexion';this.openAskT=nowS();log('connexion à Gemini ('+reason+')');
     let ws;
     try{ws=new WebSocket((cfg.geminiUrl||GM_URL)+'?key='+encodeURIComponent(cfg.geminiKey));}catch(e){this.opening=false;this.state='off';this.lastErr=e.message;return;}
     this.ws=ws;
@@ -815,7 +854,7 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     ws.onerror=()=>{};
     ws.onclose=ev=>{
       const was=this.state,why=String(ev.reason||'').slice(0,240);
-      if(this.ws===ws){this.ws=null;}this.opening=false;this.stopAudio();this.responding=false;this.state='off';
+      if(this.ws===ws){this.ws=null;}this.opening=false;this.activity=false;this.stopAudio();this.responding=false;this.state='off';
       if(was==='réglage'||was==='connexion'){
         this.lastErr=(ev.code||'')+' '+why;log('Gemini a refusé la session :',this.lastErr);
         if(/unknown name|invalid json|cannot find field|not supported|unsupported|invalid argument/i.test(why)&&this.step<4){this.step++;log('nouvel essai avec moins d\'options (palier '+this.step+')');setTimeout(()=>this.open(reason),300);return;}
@@ -826,7 +865,7 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
       }else if(ev.code!==1000)log('connexion Gemini coupée',ev.code,why);
     };
   },
-  close(why){if(this.ws){log('connexion Gemini fermée ('+why+')');const w=this.ws;this.ws=null;try{w.close(1000);}catch(e){}}
+  close(why){this.activity=false;if(this.ws){log('connexion Gemini fermée ('+why+')');const w=this.ws;this.ws=null;try{w.close(1000);}catch(e){}}
     this.stopAudio();this.state='off';this.opening=false;this.responding=false;this.turnAudio=false;},
   respond(){},
   cancel(){const gen=this.turnAudio;this.stopAudio();if(gen)this.muteTurn=true;},
@@ -847,7 +886,13 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     if(m.setupComplete){
       this.state='prêt';this.fails=0;this.openedAt=nowS();this.proactiveOn=this.step<2;this.transcribeOn=this.step<3;
       log('session Gemini prête'+(this.proactiveOn?' (il trie lui-même ce qui lui est adressé)':''));
-      if(this.preroll){for(const c of AudioIO.ring.slice(-25))this.sendPcm(c);this.preroll=false;}
+      this.manualVad=this.step<4;this.activity=false;
+      /* la phrase qui a déclenché la connexion n'est pas perdue : on la rejoue */
+      if(this.manualVad){
+        if(VAD.active)this.beginActivity(VAD.startT);
+        else if(VAD.endT>this.openAskT-1.5&&VAD.endT>nowS()-6){const a=VAD.startT,b=VAD.endT;this.activity=true;this.send({realtimeInput:{activityStart:{}}});
+          for(const x of AudioIO.ring)if(x.t>=a&&x.t<=b+.05)this.sendPcm(x.c);this.endActivity();}
+      }
       if(this.greet){const g=this.greet;this.greet=null;g();}
       return;
     }
@@ -947,6 +992,8 @@ function manage(){
   }
 }
 setInterval(manage,400);
+let pausedHintT=0;
+setInterval(()=>{if(S.started&&AudioIO.ctx&&AudioIO.ctx.state==='suspended'){AudioIO.resume();const t=nowS();if(t-pausedHintT>20){pausedHintT=t;hint("Touche l'écran une fois pour qu'Hector puisse t'entendre.",8000);}}},2000);
 
 /* ================= Animation ================= */
 const cur=Object.assign({},MOODS.endormi,{colRGB:[...MOODS.endormi.colRGB],tipRGB:[...MOODS.endormi.tipRGB]});
@@ -1144,6 +1191,7 @@ function renderDiag(){
     row('Cerveau',(cfg.brain==='gemini'?'Gemini Live ('+cfg.geminiModel+'), ':'ChatGPT, ')+(hasBrain()?(capOK()?'clé présente':'plafond atteint'):'pas de clé : mode démo'),hasBrain()&&capOK()?'ok':'warn')+
     row('Connexion',st[0],st[1])+
     row('Détection du nom',!RT.pc?'à la prochaine connexion':(cfg.brain==='gemini'?(GM.proactiveOn?'Gemini trie ce qui lui est adressé':(GM.transcribeOn?'par transcription':'indisponible')):(RT.transcribeOn?'active ('+cfg.transcribe+')':'indisponible')),RT.pc?'ok':'')+
+    row('Parole détectée',VAD.active?'oui, en ce moment':'silence (niveau '+VAD.level.toFixed(3)+', seuil '+Math.max(.012,VAD.floor*3).toFixed(3)+')',VAD.active?'ok':'')+
     row('Micro',AudioIO.ok?(AudioIO.ctx&&AudioIO.ctx.state!=='running'?'en pause : touche l\'écran':'actif, niveau '+AudioIO.level.toFixed(3)):'refusé',AudioIO.ok&&AudioIO.ctx&&AudioIO.ctx.state==='running'?'ok':'bad')+
     row('Caméra',Vision.video.srcObject?(Vision.ready?(Vision.lastSeen>t-3?'visage vu':'aucun visage'):(Vision.err?'détection indisponible':'chargement…')):'désactivée',Vision.ready?'ok':'warn')+
     row('Luminosité',Screen.hasFully()?'pilotée par Fully Kiosk':'assombrissement à l\'écran seulement',Screen.hasFully()?'ok':'warn')+
@@ -1153,7 +1201,7 @@ function renderDiag(){
   $('log').textContent=LOG.slice(-80).join('\n');
 }
 $('cam').classList.toggle('off',!cfg.preview);
-window.__hector={RT,GM,OAI,S,cfg,setMood,AudioIO,Vision,Screen,LOG,manage,nameIn,instructions};
+window.__hector={RT,GM,OAI,VAD,S,cfg,setMood,AudioIO,Vision,Screen,LOG,manage,nameIn,instructions};
 window.addEventListener('error',e=>log('erreur :',e.message));
 window.addEventListener('unhandledrejection',e=>log('erreur :',(e.reason&&e.reason.message)||String(e.reason)));
 })();

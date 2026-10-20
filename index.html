@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Hector</title>
+<style>
+/* Hector, appli tablette — lot 1 du fil conducteur. Un seul fichier : tête 3D, regard, veille, nom, voix ChatGPT. */
+:root{
+  --bg:#05080a; --fg:#e6ecea; --muted:#8fa09e; --line:#26312f; --panel:#0e1416; --field:#152022;
+  --accent:#f0a445; --ok:#4fd1a5; --warn:#f0c045; --bad:#f07a70;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px/1.45 var(--font);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#bg{position:fixed;inset:0;background:radial-gradient(65% 70% at 50% 42%,#13211f 0%,#081011 52%,#020304 100%)}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#dim{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1.4s ease}
+#sub{position:fixed;left:50%;bottom:max(4vh,env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(86vw,980px);text-align:center;font-size:clamp(17px,2.5vw,28px);line-height:1.35;color:#e3ece9;opacity:0;transition:opacity .6s;text-shadow:0 2px 10px #000,0 0 2px #000;pointer-events:none;text-wrap:balance}
+#sub.on{opacity:.92}
+#hint{position:fixed;left:50%;top:max(3vh,env(safe-area-inset-top,0px));transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(15,22,24,.8);border:1px solid var(--line);color:var(--muted);font-size:14px;opacity:0;transition:opacity .6s;pointer-events:none;white-space:nowrap}
+#hint.on{opacity:1}
+#corner{position:fixed;left:0;top:0;width:96px;height:96px;z-index:5}
+#ring{position:fixed;left:14px;top:14px;width:52px;height:52px;z-index:6;pointer-events:none;opacity:0;transition:opacity .2s}
+#ring.on{opacity:1}
+#ring circle{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+
+/* Écran de démarrage */
+#start{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(2,4,5,.86);padding:24px}
+#start .box{max-width:560px;display:grid;gap:14px;text-align:center}
+#start h1{margin:0;font-size:clamp(48px,9vw,84px);font-weight:800;letter-spacing:-.02em;line-height:1}
+#start p{margin:0;color:var(--muted);font-size:17px}
+#start .actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:8px}
+button{appearance:none;font:600 16px/1 var(--font);color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:12px;padding:14px 18px;cursor:pointer;min-height:48px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#1a1206}
+button.danger{border-color:#5b2c28;color:var(--bad)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button[disabled]{opacity:.5}
+
+/* Réglages */
+#settings{position:fixed;inset:0;z-index:30;background:rgba(2,4,5,.94);overflow:auto;-webkit-overflow-scrolling:touch;-webkit-user-select:text;user-select:text}
+#settings .sheet{max-width:860px;margin:0 auto;padding:max(20px,env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) 60px max(18px,env(safe-area-inset-left,0px));display:grid;gap:16px}
+#settings header{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;background:rgba(2,4,5,.96);padding:10px 0;z-index:2}
+#settings h1{margin:0;font-size:26px}
+#settings section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px}
+#settings h2{margin:0;font-size:18px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+label.f{display:grid;gap:6px;font-size:14px;color:var(--muted)}
+label.f > span{color:var(--fg);font-weight:600;font-size:15px}
+input[type=text],input[type=password],input[type=number],input[type=time],select{font:16px var(--font);color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px;min-height:48px;box-sizing:border-box;width:100%}
+input[type=range]{width:100%;accent-color:var(--accent);min-height:36px}
+.check{display:flex;align-items:center;gap:10px;font-size:15px;min-height:40px}
+.check input{width:22px;height:22px;accent-color:var(--accent)}
+.help{margin:0;color:var(--muted);font-size:13.5px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg label{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--field);font-size:15px;min-height:44px;box-sizing:border-box}
+.seg input{accent-color:var(--accent);width:18px;height:18px}
+.swatches{display:flex;gap:10px}
+.sw{width:40px;height:40px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);padding:0;min-height:0}
+.sw[aria-checked="true"]{box-shadow:0 0 0 3px var(--fg)}
+.mems{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.mems li{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px 8px 8px 12px}
+.mems li span{min-width:0;overflow-wrap:anywhere}
+.mems li button{min-height:40px;padding:8px 12px;font-size:14px}
+.stat{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14.5px}
+.stat dt{color:var(--muted)}
+.stat dd{margin:0;font-variant-numeric:tabular-nums}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+#log{margin:0;max-height:260px;overflow:auto;background:#05090a;border:1px solid var(--line);border-radius:10px;padding:10px;font:12.5px/1.45 var(--mono);color:#b9c7c4;white-space:pre-wrap;overflow-wrap:anywhere}
+.big{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:40;background:#1b2527;border:1px solid var(--line);color:var(--fg);padding:12px 16px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+#cam{position:fixed;right:12px;bottom:12px;width:200px;border-radius:10px;border:1px solid var(--line);z-index:4;transform:scaleX(-1);opacity:.9}
+#cam.off{width:2px;height:2px;opacity:.01;border:0;pointer-events:none}
+@media (prefers-reduced-motion: reduce){#dim,#sub,#hint{transition:none}}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<canvas id="c" aria-label="Hector, le petit robot"></canvas>
+<div id="dim"></div>
+<div id="sub" aria-live="polite"></div>
+<div id="hint"></div>
+<div id="corner" aria-hidden="true"></div>
+<svg id="ring" viewBox="0 0 52 52" aria-hidden="true"><circle id="ringc" cx="26" cy="26" r="22" stroke-dasharray="138.2" stroke-dashoffset="138.2"/></svg>
+<video id="cam" class="off" playsinline muted></video>
+<audio id="voice" autoplay playsinline></audio>
+<div id="toast" role="status"></div>
+
+<div id="start">
+  <div class="box">
+    <h1>Hector</h1>
+    <p id="start-msg">Touche « Démarrer » pour autoriser la caméra et le micro. Hector restera ensuite allumé en permanence.</p>
+    <div class="actions">
+      <button class="primary" id="b-start" type="button">Démarrer</button>
+      <button id="b-start-settings" type="button">Réglages</button>
+      <button id="b-nomic" type="button" hidden>Voir Hector quand même</button>
+    </div>
+    <p class="help" id="start-demo" hidden>Sans clé OpenAI, Hector fonctionne en mode démo : il te regarde, s'éveille quand tu le touches, mais ne parle pas encore.</p>
+  </div>
+</div>
+
+<div id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="set-title">
+  <div class="sheet">
+    <header><h1 id="set-title">Réglages d'Hector</h1><button id="b-close" type="button">Fermer</button></header>
+
+    <section aria-labelledby="h-voix">
+      <h2 id="h-voix">Voix ChatGPT</h2>
+      <label class="f" for="f-apiKey"><span>Clé OpenAI</span>
+        <input id="f-apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-proj-…">
+      </label>
+      <p class="help">Crée une clé de projet dédiée sur platform.openai.com et fixe-lui un plafond de dépense. La clé reste enregistrée sur cette tablette uniquement.</p>
+      <div class="grid">
+        <label class="f" for="f-model"><span>Modèle</span>
+          <select id="f-model">
+            <option value="gpt-realtime-2.1-mini">Mini : économique</option>
+            <option value="gpt-realtime-2.1">Standard : plus fin, environ 3 fois plus cher</option>
+          </select>
+        </label>
+        <label class="f" for="f-voice"><span>Voix</span>
+          <select id="f-voice">
+            <option value="cedar">Cedar : masculine, posée</option>
+            <option value="marin">Marin : féminine, naturelle</option>
+            <option value="ash">Ash : masculine, claire</option>
+            <option value="echo">Echo : masculine, douce</option>
+            <option value="verse">Verse : expressive</option>
+            <option value="ballad">Ballad : chaleureuse</option>
+            <option value="coral">Coral : féminine, vive</option>
+            <option value="sage">Sage : féminine, calme</option>
+            <option value="shimmer">Shimmer : féminine, légère</option>
+            <option value="alloy">Alloy : neutre</option>
+          </select>
+        </label>
+      </div>
+      <div class="row"><button id="b-testvoice" type="button">Tester la voix</button><span class="help" id="testvoice-msg"></span></div>
+      <details>
+        <summary>Options avancées</summary>
+        <div class="grid" style="margin-top:12px">
+          <label class="f" for="f-tokenUrl"><span>Serveur de jetons (optionnel)</span><input id="f-tokenUrl" type="text" spellcheck="false" placeholder="https://…"></label>
+          <label class="f" for="f-transcribe"><span>Modèle de transcription</span><input id="f-transcribe" type="text" spellcheck="false"></label>
+        </div>
+        <p class="help">Avec un serveur de jetons, la clé n'est plus stockée sur la tablette. Laisse vide pour l'instant.</p>
+      </details>
+    </section>
+
+    <section aria-labelledby="h-ecoute">
+      <h2 id="h-ecoute">Écoute</h2>
+      <div class="grid">
+        <label class="f" for="f-name"><span>Son prénom</span><input id="f-name" type="text" spellcheck="false"></label>
+        <label class="f" for="f-convWindow"><span>Écoute après sa réponse (secondes)</span><input id="f-convWindow" type="number" min="3" max="60" step="1"></label>
+        <label class="f" for="f-idleClose"><span>Coupe la connexion après (secondes de calme)</span><input id="f-idleClose" type="number" min="20" max="900" step="10"></label>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="Quand Hector écoute">
+        <label><input type="radio" name="listen" value="presence"> Quand quelqu'un est là</label>
+        <label><input type="radio" name="listen" value="jour"> Toute la journée</label>
+        <label><input type="radio" name="listen" value="toucher"> Seulement si on le touche</label>
+      </div>
+      <p class="help">« Quand quelqu'un est là » : la connexion s'ouvre si un visage est devant lui ou si quelqu'un parle, et ce qui est dit est transcrit pour chercher son nom. « Toute la journée » coûte plus cher.</p>
+      <label class="check" for="f-interrupt"><input id="f-interrupt" type="checkbox"> Il se tait quand on lui coupe la parole</label>
+    </section>
+
+    <section aria-labelledby="h-ecran">
+      <h2 id="h-ecran">Écran</h2>
+      <div class="grid">
+        <label class="f" for="f-bright"><span>Luminosité quand on l'appelle : <b id="v-bright"></b></span><input id="f-bright" type="range" min="20" max="255" step="1"></label>
+        <label class="f" for="f-dimLevel"><span>Luminosité au repos : <b id="v-dimLevel"></b></span><input id="f-dimLevel" type="range" min="0" max="80" step="1"></label>
+      </div>
+      <div class="row"><button id="b-testdim" type="button">Tester la luminosité</button><span class="help" id="dim-msg"></span></div>
+      <label class="check" for="f-nightOn"><input id="f-nightOn" type="checkbox"> Nuit : il dort et n'écoute plus</label>
+      <div class="grid">
+        <label class="f" for="f-nightStart"><span>Début de la nuit</span><input id="f-nightStart" type="time"></label>
+        <label class="f" for="f-nightEnd"><span>Fin de la nuit</span><input id="f-nightEnd" type="time"></label>
+      </div>
+      <label class="check" for="f-subtitles"><input id="f-subtitles" type="checkbox"> Sous-titres de ses réponses</label>
+      <label class="check" for="f-camera"><input id="f-camera" type="checkbox"> Caméra : il suit les visages et peut regarder</label>
+      <label class="check" for="f-mirror"><input id="f-mirror" type="checkbox"> Inverser gauche et droite du regard</label>
+      <label class="check" for="f-preview"><input id="f-preview" type="checkbox"> Afficher l'image de la caméra (pour régler)</label>
+      <div class="row"><span class="help">Couleur de la tête</span><div class="swatches" id="swatches" role="radiogroup" aria-label="Couleur de la tête"></div></div>
+    </section>
+
+    <section aria-labelledby="h-meteo">
+      <h2 id="h-meteo">Météo</h2>
+      <div class="row">
+        <label class="f" for="f-city" style="flex:1;min-width:200px"><span>Ville</span><input id="f-city" type="text" spellcheck="false"></label>
+        <button id="b-city" type="button" style="align-self:end">Chercher</button>
+      </div>
+      <p class="help" id="city-msg"></p>
+    </section>
+
+    <section aria-labelledby="h-mem">
+      <h2 id="h-mem">Souvenirs</h2>
+      <p class="help">Ce qu'Hector a retenu. Il s'en sert à chaque conversation.</p>
+      <ul class="mems" id="mems"></ul>
+      <div class="row"><input id="f-newmem" type="text" placeholder="Ajouter un souvenir…" style="flex:1;min-width:200px"><button id="b-addmem" type="button">Ajouter</button></div>
+    </section>
+
+    <section aria-labelledby="h-cost">
+      <h2 id="h-cost">Dépense</h2>
+      <div class="row" style="justify-content:space-between">
+        <div><div class="big" id="cost-month">0,00 $</div><div class="help">estimée ce mois-ci, voix et transcription</div></div>
+        <label class="f" for="f-cap" style="width:200px"><span>Plafond mensuel ($)</span><input id="f-cap" type="number" min="1" max="500" step="1"></label>
+      </div>
+      <p class="help">Estimation à partir des tarifs publics ; le montant exact est sur platform.openai.com. Au plafond, Hector n'appelle plus OpenAI jusqu'au mois suivant.</p>
+      <div class="row"><button id="b-resetcost" type="button" class="danger">Remettre à zéro</button><span class="help" id="reset-msg"></span></div>
+    </section>
+
+    <section aria-labelledby="h-diag">
+      <h2 id="h-diag">Diagnostic</h2>
+      <dl class="stat" id="diag"></dl>
+      <pre id="log"></pre>
+      <div class="row"><button id="b-copylog" type="button">Copier le journal</button><button id="b-reload" type="button">Recharger l'appli</button></div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const TAU=Math.PI*2, DEG=Math.PI/180;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
+const hex2rgb=h=>{const n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255];};
+const rgbStr=(c,a)=>a===undefined?`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`:`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const mix=(c,t,k)=>[c[0]+(t[0]-c[0])*k,c[1]+(t[1]-c[1])*k,c[2]+(t[2]-c[2])*k];
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const nowS=()=>performance.now()/1000;
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/* ================= Journal ================= */
+const LOG=[];
+function log(...a){
+  const line=new Date().toTimeString().slice(0,8)+'  '+a.map(x=>typeof x==='string'?x:(()=>{try{return JSON.stringify(x)}catch(e){return String(x)}})()).join(' ');
+  LOG.push(line);if(LOG.length>300)LOG.shift();
+  try{console.log('[Hector]',...a);}catch(e){}
+  if(!$('settings').hidden)$('log').textContent=LOG.slice(-80).join('\n');
+}
+let toastT=null;
+function toast(msg,ms=3500){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),ms);}
+
+/* ================= Réglages persistants ================= */
+const DEF={name:'Hector',apiKey:'',tokenUrl:'',model:'gpt-realtime-2.1-mini',voice:'cedar',transcribe:'gpt-4o-mini-transcribe',
+  listen:'presence',convWindow:10,idleClose:90,interrupt:true,bright:200,dimLevel:6,nightOn:true,nightStart:'23:00',nightEnd:'07:00',
+  subtitles:true,camera:true,mirror:false,preview:false,color:'#7FA08A',city:'Nantes',lat:47.2184,lon:-1.5536,cap:10,started:false};
+function loadJSON(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function saveJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+const cfg=Object.assign({},DEF,loadJSON('hector.cfg.v1',{}));
+const saveCfg=()=>saveJSON('hector.cfg.v1',cfg);
+let memories=loadJSON('hector.mem.v1',[]);
+const saveMem=()=>saveJSON('hector.mem.v1',memories);
+let usage=loadJSON('hector.usage.v1',{});
+const monthKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
+const monthCost=()=>usage[monthKey()]||0;
+function addCost(usd){if(!(usd>0))return;const k=monthKey();usage[k]=(usage[k]||0)+usd;saveJSON('hector.usage.v1',usage);}
+const hasBrain=()=>!!(cfg.apiKey||cfg.tokenUrl);
+const capOK=()=>monthCost()<cfg.cap;
+
+/* Tarifs publics en $ par million de jetons (estimation) */
+const PRICE={'gpt-realtime-2.1-mini':{ai:10,ac:.3,ao:20,ti:.6,tc:.06,to:2.4,im:.8},'gpt-realtime-2.1':{ai:32,ac:.4,ao:64,ti:4,tc:.4,to:24,im:5}};
+const TPRICE={'gpt-4o-mini-transcribe':{ai:3,ti:1.25,to:5,min:.003},'gpt-4o-transcribe':{ai:6,ti:2.5,to:10,min:.006},'whisper-1':{min:.006}};
+
+/* ================= Humeurs (langage des expressions) ================= */
+const BASE={lidTop:.1,lidBot:.04,tilt:0,smile:0,iris:1,pupil:1,asym:0,stretch:1,wet:0,gleam:1,ring:0,ringSpin:.3,bright:1,
+  col:'#27c1b6',tip:'#27c1b6',tipI:.55,pitch:0,roll:0,ty:0,tz:0,sway:0,swayHz:.5,breathe:.22,aL:8,aR:8,wig:2.5,wigHz:.45,
+  track:1,lookX:0,lookY:0,speed:5,pulse:0,alt:0,twitch:1,k:60,z:.55};
+const MOODS={
+  neutre:{},
+  content:{lidTop:.02,smile:.78,gleam:1.25,iris:1.02,col:'#3dd6a6',tip:'#f4ad3c',tipI:1.1,pitch:-3,ty:.4,sway:4,swayHz:.55,aL:26,aR:26,wig:7,wigHz:1.3,track:.8,k:70,z:.42},
+  curieux:{lidTop:.04,asym:.36,iris:1.05,col:'#39c6e0',tip:'#39c6e0',tipI:.9,pitch:-4,roll:12,ty:.15,tz:.7,aL:2,aR:40,wig:3,wigHz:.8,k:55,z:.5},
+  surpris:{lidTop:0,lidBot:0,iris:1.12,pupil:.8,stretch:1.07,gleam:1.3,col:'#5fe0e8',tip:'#ffe9c4',tipI:1.3,pitch:-6,ty:.8,tz:-.6,aL:-6,aR:-6,wig:1,wigHz:2,track:.6,speed:12,twitch:0,k:90,z:.38},
+  triste:{lidTop:.52,tilt:.78,iris:.97,pupil:1.12,wet:1,col:'#6b8ee0',tip:'#6b8ee0',tipI:.35,pitch:11,roll:-4,ty:-.7,tz:.15,aL:44,aR:44,wig:1,wigHz:.25,track:.35,lookY:.45,breathe:.3,speed:2.5,bright:.88,twitch:0,k:14,z:.9},
+  tendre:{lidTop:.34,smile:.42,pupil:1.25,gleam:1.2,col:'#ff9f86',tip:'#ff9f86',tipI:.8,pitch:2,roll:9,ty:.1,tz:.45,sway:2.5,swayHz:.28,aL:18,aR:18,wig:2,wigHz:.4,speed:3,twitch:0,k:25,z:.75},
+  endormi:{lidTop:.9,lidBot:.12,iris:.9,col:'#2a8e8a',tip:'#2a4a48',tipI:.05,pitch:10,roll:6,ty:-.65,aL:40,aR:34,wig:0,breathe:.55,track:0,lookY:.6,speed:1.6,bright:.4,twitch:0,k:10,z:1},
+  ecoute:{lidTop:0,iris:1.06,pupil:1.32,col:'#3fd3f0',tip:'#3fd3f0',tipI:1.2,pitch:-3,roll:6,ty:.25,tz:.9,aL:-4,aR:-4,wig:1.5,wigHz:1.2,pulse:1,ring:1,ringSpin:.4,speed:7,twitch:0,k:70,z:.5},
+  reflechit:{lidTop:.12,lidBot:.14,col:'#8c9cff',tip:'#8c9cff',tipI:.9,pitch:-5,roll:-7,ty:.15,aL:8,aR:30,wig:2,wigHz:.6,track:.3,lookX:.5,lookY:-.55,ring:1,ringSpin:2.4,alt:1,speed:6,twitch:0},
+  parle:{lidTop:.05,smile:.3,iris:1.02,col:'#33c9b8',tip:'#f4ad3c',tipI:.9,pitch:-1,ty:.2,aL:12,aR:12,wig:3,wigHz:.9,ring:.55,ringSpin:.2,twitch:0}
+};
+for(const k in MOODS){MOODS[k]=Object.assign({},BASE,MOODS[k]);MOODS[k].colRGB=hex2rgb(MOODS[k].col);MOODS[k].tipRGB=hex2rgb(MOODS[k].tip);}
+let moodKey='endormi', clock=0, blinkAt=2, noBlinkUntil=0;
+const fx=[];const at=(d,fn)=>fx.push({t:clock+d,fn});
+const SPR={pitch:{x:0,v:0},roll:{x:0,v:0},ty:{x:0,v:0},tz:{x:0,v:0},yaw:{x:0,v:0},pop:{x:0,v:0}};
+let antKick=()=>{};
+function enter(k){
+  if(k==='surpris'){SPR.ty.v-=4;SPR.pitch.v+=.4;noBlinkUntil=clock+1.8;at(.13,()=>{SPR.ty.v+=10;SPR.tz.v-=8;SPR.pitch.v-=1.2;SPR.pop.v+=6;antKick(300,300);});}
+  else if(k==='content'){SPR.ty.v+=12;antKick(200,200);at(.36,()=>{SPR.ty.v+=9;});}
+  else if(k==='triste'){SPR.ty.v+=4;}
+  else if(k==='curieux'){SPR.roll.v+=1.1;antKick(0,220);}
+  else if(k==='ecoute'){SPR.ty.v+=7;SPR.pop.v+=2;antKick(-160,-160);}
+  else if(k==='tendre'){SPR.roll.v+=.5;}
+}
+function setMood(k){if(!MOODS[k])k='neutre';const prev=moodKey;moodKey=k;if(prev!==k)enter(k);if(prev==='endormi'&&k!=='endormi')blinkAt=0;}
+
+/* ================= Écran : luminosité et veille ================= */
+const Screen={native:false,level:-1,target:-1,fadeT:null,wake:null,
+  hasFully(){return typeof window.fully!=='undefined'&&window.fully&&typeof window.fully.setScreenBrightness==='function';},
+  apply(l){
+    if(this.hasFully()){try{window.fully.setScreenBrightness(Math.round(l));this.native=true;}catch(e){this.native=false;}}
+    const o=this.native?0:clamp(1-Math.max(.06,l/Math.max(1,cfg.bright)),0,.94);
+    $('dim').style.opacity=String(o);
+  },
+  set(l){
+    l=clamp(Math.round(l),0,255);if(l===this.target)return;this.target=l;clearInterval(this.fadeT);
+    if(this.level<0||!this.hasFully()){this.level=l;this.apply(l);return;}
+    const from=this.level,steps=10;let i=0;
+    this.fadeT=setInterval(()=>{i++;this.level=Math.round(from+(l-from)*i/steps);this.apply(this.level);if(i>=steps)clearInterval(this.fadeT);},70);
+  },
+  async keepAwake(){
+    try{if(window.fully&&typeof window.fully.setBooleanSetting==='function'){window.fully.setBooleanSetting('keepScreenOn',true);}}catch(e){}
+    try{if('wakeLock' in navigator&&document.visibilityState==='visible'){this.wake=await navigator.wakeLock.request('screen');this.wake.addEventListener('release',()=>{this.wake=null;});}}catch(e){log('verrou écran refusé',e.message||String(e));}
+  }
+};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')Screen.keepAwake();});
+
+/* ================= Rendu 3D de la tête ================= */
+const canvas=$('c');
+if(!window.THREE){document.body.insertAdjacentHTML('beforeend','<p style="position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fa09e">Impossible de charger Hector : vérifie la connexion internet puis recharge.</p>');return;}
+if(THREE.ColorManagement)THREE.ColorManagement.legacyMode=false;
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){document.body.insertAdjacentHTML('beforeend','<p style="position:fixed;inset:auto 0 40% 0;text-align:center;color:#8fa09e">Cette tablette ne sait pas afficher la 3D (WebGL).</p>');return;}
+renderer.setPixelRatio(Math.min(1.75,window.devicePixelRatio||1));
+renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+renderer.setClearColor(0x000000,0);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(30,1,1,500);
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+{const pm=new THREE.PMREMGenerator(renderer);const es=new THREE.Scene();
+ const room=new THREE.Mesh(new THREE.BoxGeometry(160,90,160),new THREE.MeshBasicMaterial({color:0x2c3436,side:THREE.BackSide}));room.position.y=30;es.add(room);
+ const panel=(w,h,x,y,z,k,c)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:new THREE.Color(c||0xffffff).multiplyScalar(k),side:THREE.DoubleSide}));m.position.set(x,y,z);m.lookAt(0,10,0);es.add(m);};
+ panel(46,30,44,52,48,3.2);panel(34,40,-62,26,-6,2.2,0xbfe6ff);panel(110,8,0,70,-40,2.6);panel(30,18,-20,10,70,1.4,0xfff1de);
+ scene.environment=pm.fromScene(es,.04).texture;pm.dispose();}
+scene.add(new THREE.HemisphereLight(0xffffff,0x223030,.32));
+const keyL=new THREE.DirectionalLight(0xfff2e2,1.15);keyL.position.set(30,50,60);scene.add(keyL);
+const rimL=new THREE.DirectionalLight(0x9fdcff,.85);rimL.position.set(-40,30,-45);scene.add(rimL);
+const rimR=new THREE.DirectionalLight(0xffd9a8,.35);rimR.position.set(45,10,-30);scene.add(rimR);
+
+const std=o=>new THREE.MeshStandardMaterial(o), phys=o=>new THREE.MeshPhysicalMaterial(o);
+const mesh=(g,m)=>new THREE.Mesh(g,m);
+const MAT={
+  shell:phys({color:cfg.color,roughness:.4,clearcoat:.4,clearcoatRoughness:.28,envMapIntensity:.55}),
+  dark:phys({color:0x1d2022,roughness:.32,clearcoat:.7,clearcoatRoughness:.25,envMapIntensity:.6}),
+  accent:phys({color:0xD99A3E,roughness:.35,clearcoat:.5,envMapIntensity:.6,emissive:0x000000}),
+  metal:std({color:0xb7bec2,roughness:.28,metalness:.95}),
+  joint:std({color:0x30363a,roughness:.3,metalness:.85}),
+  servo:std({color:0x1e2326,roughness:.6}),
+  lens:std({color:0x0b2236,roughness:.05,metalness:.6})
+};
+const glass=k=>std({color:0x000000,roughness:.05,metalness:0,envMapIntensity:k,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+function rrect(w,h,r,isPath){const s=isPath?new THREE.Path():new THREE.Shape(),x=-w/2,y=-h/2;
+  s.moveTo(0,y);s.absarc(x+w-r,y+r,r,-Math.PI/2,0,false);s.absarc(x+w-r,y+h-r,r,0,Math.PI/2,false);
+  s.absarc(x+r,y+h-r,r,Math.PI/2,Math.PI,false);s.absarc(x+r,y+r,r,Math.PI,1.5*Math.PI,false);s.closePath();return s;}
+function circ(x,y,r){const p=new THREE.Path();p.absarc(x,y,r,0,TAU,true);return p;}
+function smoothNormals(g){g.computeVertexNormals();const p=g.attributes.position,n=g.attributes.normal,map=new Map();
+  const key=i=>Math.round(p.getX(i)*500)+','+Math.round(p.getY(i)*500)+','+Math.round(p.getZ(i)*500);
+  for(let i=0;i<p.count;i++){const k=key(i);let a=map.get(k);if(!a){a=[0,0,0];map.set(k,a);}a[0]+=n.getX(i);a[1]+=n.getY(i);a[2]+=n.getZ(i);}
+  for(let i=0;i<p.count;i++){const a=map.get(key(i)),l=Math.hypot(a[0],a[1],a[2])||1;n.setXYZ(i,a[0]/l,a[1]/l,a[2]/l);}n.needsUpdate=true;}
+
+/* Pivot du cou virtuel sous la tête : les hochements paraissent naturels */
+const pivot=new THREE.Group();pivot.position.set(0,-5.2,0);scene.add(pivot);
+const head=new THREE.Group();head.position.set(0,5.2,0);pivot.add(head);
+{const g=new THREE.ExtrudeGeometry(rrect(12.6,7.6,3.0),{depth:6,bevelEnabled:true,bevelThickness:2.2,bevelSize:1.7,bevelSegments:12,curveSegments:36});g.center();smoothNormals(g);head.add(mesh(g,MAT.shell));}
+{const s=rrect(16.08,11.08,4.74);s.holes.push(rrect(15.5,10.5,4.45,true));const g=new THREE.ExtrudeGeometry(s,{depth:.12,bevelEnabled:false,curveSegments:36});const m=mesh(g,MAT.dark);m.position.z=.6;head.add(m);}
+const FW=11.6,FH=6.8,EYE_X=2.9,EYE_Y=-.2,EYE_R=2.42,LENS_Y=2.62;
+{const s=rrect(11.8,7.0,2.7);s.holes.push(circ(-EYE_X,EYE_Y,EYE_R),circ(EYE_X,EYE_Y,EYE_R),circ(0,LENS_Y,.5));
+ const g=new THREE.ExtrudeGeometry(s,{depth:.26,bevelEnabled:true,bevelThickness:.04,bevelSize:.04,bevelSegments:2,curveSegments:48});const m=mesh(g,MAT.dark);m.position.z=5.14;head.add(m);}
+[-1,1].forEach(sd=>{const s=new THREE.Shape();s.absarc(0,0,2.82,0,TAU,false);s.holes.push(circ(0,0,EYE_R));
+  const g=new THREE.ExtrudeGeometry(s,{depth:.18,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:3,curveSegments:64});const m=mesh(g,MAT.dark);m.position.set(sd*EYE_X,EYE_Y,5.44);head.add(m);
+  const RC=6,TH=Math.asin(2.6/RC);const dome=mesh(new THREE.SphereGeometry(RC,64,20,0,TAU,0,TH),glass(.3));dome.rotation.x=Math.PI/2;dome.position.set(sd*EYE_X,EYE_Y,5.45-RC*Math.cos(TH));head.add(dome);});
+const EW=1024,EH=600,PX=EH/FH;
+const ec=document.createElement('canvas');ec.width=EW;ec.height=EH;const ex=ec.getContext('2d');
+const eyeTex=new THREE.CanvasTexture(ec);eyeTex.encoding=THREE.sRGBEncoding;eyeTex.anisotropy=4;
+{const sc=mesh(new THREE.PlaneGeometry(FW,FH),new THREE.MeshBasicMaterial({map:eyeTex,toneMapped:false,alphaTest:.5}));sc.position.z=5.26;head.add(sc);}
+{const lens=new THREE.Group();lens.position.set(0,LENS_Y,5.22);head.add(lens);
+ const r=mesh(new THREE.CylinderGeometry(.48,.48,.3,32),MAT.servo);r.rotation.x=Math.PI/2;lens.add(r);
+ const gl=mesh(new THREE.SphereGeometry(.32,24,16),MAT.lens);gl.scale.z=.45;gl.position.z=.16;lens.add(gl);}
+[[-5,2.6],[5,2.6],[-5,-2.6],[5,-2.6]].forEach(([x,y])=>{const s=mesh(new THREE.CylinderGeometry(.27,.27,.1,20),MAT.joint);s.rotation.x=Math.PI/2;s.position.set(x,y,-5.24);head.add(s);});
+const headCenter=new THREE.Object3D();head.add(headCenter);
+
+/* Ombre douce sous la tête */
+const shadowC=document.createElement('canvas');shadowC.width=shadowC.height=128;
+{const x=shadowC.getContext('2d');const g=x.createRadialGradient(64,64,6,64,64,64);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);}
+const shadow=mesh(new THREE.PlaneGeometry(20,6),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(shadowC),transparent:true,depthWrite:false}));
+shadow.rotation.x=-Math.PI/2;shadow.position.y=-8.6;scene.add(shadow);
+
+/* Antennes : tige souple + embout lumineux, ressort simulé */
+const ROD_L=10.5,PIV_Y=3.0,ANT_X=3.6,PIV_Z=-5.52;
+const antennas=[];
+const glowC=document.createElement('canvas');glowC.width=glowC.height=64;
+{const x=glowC.getContext('2d');const g=x.createRadialGradient(32,32,2,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.35,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);}
+const glowTex=new THREE.CanvasTexture(glowC);
+[-1,1].forEach(side=>{
+  const x=side*ANT_X;
+  const pv=new THREE.Group();pv.position.set(x,PIV_Y,PIV_Z);head.add(pv);
+  const hornD=mesh(new THREE.CylinderGeometry(.75,.75,.28,32),MAT.dark);hornD.rotation.x=Math.PI/2;hornD.position.z=.12;pv.add(hornD);
+  const uni={uBend:{value:new THREE.Vector2()},uLen:{value:ROD_L},uCurve:{value:side*.6}};
+  const rodMat=std({color:0x2a2e31,roughness:.35,metalness:.6});
+  rodMat.onBeforeCompile=sh=>{Object.assign(sh.uniforms,uni);sh.vertexShader='uniform vec2 uBend;\nuniform float uLen;\nuniform float uCurve;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nfloat hh=clamp(position.y/uLen,0.0,1.0);\ntransformed.x+=(uCurve+uBend.x)*hh*hh;\ntransformed.z+=uBend.y*hh*hh;');};
+  rodMat.customProgramCacheKey=()=>'hector-rod';
+  const rg=new THREE.CylinderGeometry(.1,.1,ROD_L,10,40);rg.translate(0,ROD_L/2,0);pv.add(mesh(rg,rodMat));
+  const tip=new THREE.Group();pv.add(tip);
+  const tipMat=phys({color:0xD99A3E,roughness:.35,clearcoat:.6,envMapIntensity:.6,emissive:0x000000});
+  const bead=mesh(new THREE.SphereGeometry(.46,28,18),tipMat);bead.scale.set(1,1.1,1);bead.position.y=.35;tip.add(bead);
+  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffffff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  halo.scale.set(3.2,3.2,1);halo.position.y=.35;tip.add(halo);
+  antennas.push({side,pv,uni,tip,tipMat,halo,angle:0,tw:0,twv:0,phase:side>0?1.7:0,p:V3(0,0,0),v:V3(0,0,0),init:false,next:3+Math.random()*4});
+});
+antKick=(a,b)=>{antennas[0].twv+=a;antennas[1].twv+=b;};
+function setShellColor(h){MAT.shell.color.set(h);}
+
+const camTarget=V3(0,4.2,0);
+function resize(){
+  const w=window.innerWidth,h=window.innerHeight;if(!w||!h)return;
+  renderer.setSize(w,h,false);camera.aspect=w/h;
+  const vt=Math.tan(camera.fov*DEG/2),Hh=21.5,Ww=21;
+  const d=Math.max((Hh/2)/vt,(Ww/2)/(vt*camera.aspect))*1.04;
+  camera.position.set(0,camTarget.y+3,d+6);camera.lookAt(camTarget);camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize);resize();
+
+/* ================= Yeux dessinés en direct ================= */
+const IP=512,ipc=document.createElement('canvas');ipc.width=ipc.height=IP;
+(function buildIris(){const x=ipc.getContext('2d'),c=IP/2,R=IP/2-2;let s=7;const rnd=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};
+  x.fillStyle='rgb(128,128,128)';x.beginPath();x.arc(c,c,R,0,TAU);x.fill();
+  for(let i=0;i<620;i++){const a=rnd()*TAU,r0=R*(.3+rnd()*.14),r1=R*(.68+rnd()*.3),b=(rnd()-.5)*.28,light=rnd()<.55;
+    x.strokeStyle=light?`rgba(255,255,255,${.1+rnd()*.28})`:`rgba(0,0,0,${.1+rnd()*.28})`;x.lineWidth=.8+rnd()*2.4;
+    x.beginPath();x.moveTo(c+Math.cos(a)*r0,c+Math.sin(a)*r0);const rm=(r0+r1)/2;x.quadraticCurveTo(c+Math.cos(a+b)*rm,c+Math.sin(a+b)*rm,c+Math.cos(a+b*.4)*r1,c+Math.sin(a+b*.4)*r1);x.stroke();}
+  for(let i=0;i<46;i++){const a=rnd()*TAU,r=R*(.48+rnd()*.32);x.fillStyle=`rgba(0,0,0,${.14+rnd()*.22})`;x.beginPath();x.ellipse(c+Math.cos(a)*r,c+Math.sin(a)*r,4+rnd()*10,2+rnd()*4,a,0,TAU);x.fill();}
+  x.strokeStyle='rgba(255,255,255,.5)';x.lineWidth=3;x.beginPath();for(let k=0;k<=240;k++){const a=k/240*TAU,r=R*(.5+.035*Math.sin(a*9)+.015*Math.sin(a*23)),px=c+Math.cos(a)*r,py=c+Math.sin(a)*r;k?x.lineTo(px,py):x.moveTo(px,py);}x.stroke();
+  x.strokeStyle='rgba(255,255,255,.13)';x.lineWidth=1.2;[.62,.78,.9].forEach(f=>{x.beginPath();x.arc(c,c,R*f,0,TAU);x.stroke();});
+  let g=x.createRadialGradient(c,c,R*.76,c,c,R);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.88)');x.fillStyle=g;x.beginPath();x.arc(c,c,R,0,TAU);x.fill();
+  g=x.createRadialGradient(c,c,R*.24,c,c,R*.46);g.addColorStop(0,'rgba(0,0,0,.5)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.beginPath();x.arc(c,c,R*.46,0,TAU);x.fill();})();
+const EYES=[{cx:(FW/2-EYE_X)*PX,side:-1},{cx:(FW/2+EYE_X)*PX,side:1}];
+const ECY=(FH/2-EYE_Y)*PX,ER=EYE_R*PX,LID='#030607';
+function drawEye(e,p,lk,blink,env,t,pop){
+  const cx=e.cx,cy=ECY,R=ER,side=e.side,B=p.bright;
+  ex.save();ex.beginPath();ex.arc(cx,cy,R,0,TAU);ex.clip();
+  const c=mix(p.colRGB,[0,0,0],1-B);
+  let g=ex.createRadialGradient(cx,cy-R*.15,R*.05,cx,cy,R);g.addColorStop(0,rgbStr(mix([7,22,27],c,.1)));g.addColorStop(1,'#010304');ex.fillStyle=g;ex.fillRect(cx-R,cy-R,2*R,2*R);
+  const asymLid=side>0?p.asym:0,asymIris=side<0?1+p.asym*.22:1;
+  const ir=R*.6*p.iris*asymIris*(1+env*.05)*(1+pop*.28);
+  const ix=cx+lk.x*R*.27,iy=cy+lk.y*R*.25;
+  g=ex.createRadialGradient(ix,iy,ir*.7,ix,iy,ir*1.55);g.addColorStop(0,rgbStr(c,.32));g.addColorStop(1,rgbStr(c,0));ex.fillStyle=g;ex.fillRect(cx-R,cy-R,2*R,2*R);
+  ex.save();ex.translate(ix,iy);ex.scale(1,(1-.24*blink)*p.stretch);
+  g=ex.createRadialGradient(-ir*.15,-ir*.2,ir*.04,0,0,ir);g.addColorStop(0,rgbStr(mix(c,[255,255,255],.55)));g.addColorStop(.45,rgbStr(c));g.addColorStop(.85,rgbStr(mix(c,[0,0,0],.35)));g.addColorStop(1,rgbStr(mix(c,[0,0,0],.72)));
+  ex.beginPath();ex.arc(0,0,ir,0,TAU);ex.fillStyle=g;ex.fill();
+  ex.globalCompositeOperation='overlay';ex.drawImage(ipc,-ir,-ir,ir*2,ir*2);
+  ex.globalCompositeOperation='lighter';
+  ex.strokeStyle=rgbStr(c,.32);ex.lineWidth=ir*.045;ex.beginPath();ex.arc(0,0,ir*.965,0,TAU);ex.stroke();
+  const pr=ir*.38*p.pupil*(1+.035*Math.sin(t*1.3)+.02*Math.sin(t*3.1));
+  g=ex.createRadialGradient(0,0,pr*.9,0,0,pr*1.75);g.addColorStop(0,rgbStr(mix(c,[255,255,255],.35),.42));g.addColorStop(1,rgbStr(c,0));ex.fillStyle=g;ex.beginPath();ex.arc(0,0,pr*1.75,0,TAU);ex.fill();
+  if(p.ring>.02){const n=40,rr=ir*1.13,rot=t*p.ringSpin;ex.lineWidth=ir*.04;ex.lineCap='round';
+    for(let k=0;k<n;k++){const a0=rot+k/n*TAU;let al=p.ring*(.18+.42*(.5+.5*Math.sin(k*.9+t*3.2)));
+      if(env>0){const f=Math.abs(Math.sin(k*1.7+t*9));al=p.ring*(.15+.85*clamp(env*1.4*f,0,1));}
+      ex.strokeStyle=rgbStr(c,al*B);ex.beginPath();ex.arc(0,0,rr,a0,a0+TAU/n*.5);ex.stroke();}}
+  ex.globalCompositeOperation='source-over';
+  g=ex.createRadialGradient(0,0,pr*.8,0,0,pr*1.05);g.addColorStop(0,'#010304');g.addColorStop(1,'rgba(1,3,4,0)');ex.fillStyle=g;ex.beginPath();ex.arc(0,0,pr*1.06,0,TAU);ex.fill();
+  if(p.wet>.02){ex.strokeStyle=`rgba(255,255,255,${.38*p.wet*B})`;ex.lineWidth=ir*.05;ex.lineCap='round';ex.beginPath();ex.arc(0,0,ir*.84,Math.PI*.22,Math.PI*.78);ex.stroke();
+    ex.fillStyle=`rgba(255,255,255,${.5*p.wet*B})`;ex.beginPath();ex.arc(ir*.3,ir*.55,ir*.06,0,TAU);ex.fill();}
+  ex.restore();
+  const gl=p.gleam;
+  ex.fillStyle=`rgba(255,255,255,${Math.min(1,.82*gl)*B})`;ex.beginPath();ex.ellipse(cx-R*.27+lk.x*R*.09,cy-R*.33+lk.y*R*.07,R*.13*gl,R*.075*gl,-.55,0,TAU);ex.fill();
+  ex.fillStyle=`rgba(255,255,255,${.45*B})`;ex.beginPath();ex.arc(cx+R*.24+lk.x*R*.06,cy+R*.21+lk.y*R*.05,R*.035*gl,0,TAU);ex.fill();
+  const top=clamp(p.lidTop+asymLid,0,1),shut=cy+.1*R;
+  let y0=cy-1.15*R+top*2.3*R,y1=cy+1.15*R-p.lidBot*2.3*R;y0+=(shut-y0)*blink;y1+=(shut-y1)*blink;
+  const off=dx=>p.tilt*R*.45*(dx/R)*side;
+  g=ex.createLinearGradient(0,y0,0,y0+R*.3);g.addColorStop(0,'rgba(0,0,0,.6)');g.addColorStop(1,'rgba(0,0,0,0)');ex.fillStyle=g;ex.fillRect(cx-R,y0-2,2*R,R*.32);
+  g=ex.createLinearGradient(0,y1,0,y1-R*.2);g.addColorStop(0,'rgba(0,0,0,.5)');g.addColorStop(1,'rgba(0,0,0,0)');ex.fillStyle=g;ex.fillRect(cx-R,y1-R*.22,2*R,R*.24);
+  ex.fillStyle=LID;
+  ex.beginPath();ex.moveTo(cx-R-6,cy-R-6);ex.lineTo(cx+R+6,cy-R-6);ex.lineTo(cx+R+6,y0+off(R));ex.quadraticCurveTo(cx,y0+R*.16,cx-R-6,y0+off(-R));ex.closePath();ex.fill();
+  ex.beginPath();ex.moveTo(cx-R-6,cy+R+6);ex.lineTo(cx+R+6,cy+R+6);ex.lineTo(cx+R+6,y1);ex.quadraticCurveTo(cx,y1-R*.1,cx-R-6,y1);ex.closePath();ex.fill();
+  const sc=cy+R*(2.3-p.smile*1.5);ex.beginPath();ex.arc(cx,sc,R*1.12,0,TAU);ex.fill();
+  ex.strokeStyle=rgbStr(c,.32*B);ex.lineWidth=2.5;
+  if(top>.03||blink>.05){ex.beginPath();ex.moveTo(cx+R,y0+off(R));ex.quadraticCurveTo(cx,y0+R*.16,cx-R,y0+off(-R));ex.stroke();}
+  if(p.smile>.12){ex.beginPath();ex.arc(cx,sc,R*1.12,-Math.PI*.95,-Math.PI*.05);ex.stroke();}
+  g=ex.createRadialGradient(cx,cy,R*.74,cx,cy,R);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.65)');ex.fillStyle=g;ex.fillRect(cx-R,cy-R,2*R,2*R);
+  ex.restore();
+}
+function drawFace(p,lk,blink,env,t,pop){ex.clearRect(0,0,EW,EH);for(const e of EYES)drawEye(e,p,lk,blink,env,t,pop);eyeTex.needsUpdate=true;}
+
+/* ================= Micro, caméra, visages ================= */
+const AudioIO={ctx:null,stream:null,raw:null,delayed:null,an:null,buf:null,level:0,floor:.01,speechOn:false,speechSince:0,lastSpeech:-99,outAn:null,outBuf:null,outLevel:0,lastOut:-99,ok:false,
+  async init(){
+    let stream=null;
+    const aud={echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+    const vid=cfg.camera?{facingMode:'user',width:{ideal:640},height:{ideal:480}}:false;
+    try{stream=await navigator.mediaDevices.getUserMedia({audio:aud,video:vid});}
+    catch(e){log('caméra+micro refusés :',e.name||e.message);try{stream=await navigator.mediaDevices.getUserMedia({audio:aud});}catch(e2){log('micro refusé :',e2.name||e2.message);}}
+    if(!stream)return false;
+    this.stream=stream;this.raw=stream.getAudioTracks()[0]||null;
+    const vt=stream.getVideoTracks()[0];if(vt)Vision.attach(new MediaStream([vt]));
+    try{
+      this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+      if(this.raw){
+        const src=this.ctx.createMediaStreamSource(new MediaStream([this.raw]));
+        this.an=this.ctx.createAnalyser();this.an.fftSize=1024;this.buf=new Float32Array(this.an.fftSize);src.connect(this.an);
+        const dl=this.ctx.createDelay(4);dl.delayTime.value=2.2;const dest=this.ctx.createMediaStreamDestination();src.connect(dl);dl.connect(dest);
+        this.delayed=dest.stream.getAudioTracks()[0];
+      }
+    }catch(e){log('audio indisponible :',e.message);}
+    this.ok=!!this.raw;return true;
+  },
+  resume(){if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume().catch(()=>{});},
+  attachOutput(stream){try{const s=this.ctx.createMediaStreamSource(stream);this.outAn=this.ctx.createAnalyser();this.outAn.fftSize=512;this.outBuf=new Float32Array(this.outAn.fftSize);s.connect(this.outAn);}catch(e){log('analyse de la voix impossible',e.message);}},
+  rms(an,buf){an.getFloatTimeDomainData(buf);let s=0;for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i];return Math.sqrt(s/buf.length);},
+  tick(t,dt){
+    if(this.an){const r=this.rms(this.an,this.buf);this.level=r;
+      this.floor=r<this.floor?damp(this.floor,r,3,dt):damp(this.floor,r,.08,dt);
+      const loud=r>Math.max(.012,this.floor*3.2);
+      if(loud){if(!this.speechSince)this.speechSince=t;if(t-this.speechSince>.22){this.speechOn=true;this.lastSpeech=t;}}
+      else{this.speechSince=0;if(this.speechOn&&t-this.lastSpeech>.6)this.speechOn=false;}}
+    if(this.outAn){const r=this.rms(this.outAn,this.outBuf);this.outLevel=damp(this.outLevel,r,18,dt);if(r>.01)this.lastOut=t;}
+  }
+};
+const Vision={video:$('cam'),det:null,ready:false,loading:false,lastSeen:-99,cx:.5,cy:.45,size:0,faces:0,next:0,err:'',
+  attach(stream){this.video.srcObject=stream;this.video.play().catch(()=>{});this.load();},
+  async load(){
+    if(this.loading||this.det)return;this.loading=true;
+    const V='0.10.14';
+    try{
+      const mod=await import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/vision_bundle.mjs`);
+      const files=await mod.FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/wasm`);
+      const opts=d=>({baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:d},runningMode:'VIDEO',minDetectionConfidence:.55});
+      try{this.det=await mod.FaceDetector.createFromOptions(files,opts('GPU'));}catch(e){this.det=await mod.FaceDetector.createFromOptions(files,opts('CPU'));}
+      this.ready=true;log('détection des visages prête');
+    }catch(e){this.err=e.message||String(e);log('détection des visages indisponible :',this.err);}
+    this.loading=false;
+  },
+  tick(t){
+    if(!this.det||t<this.next||this.video.readyState<2)return;
+    this.next=t+(S.awake?.1:S.night?1.5:.35);
+    let r;try{r=this.det.detectForVideo(this.video,performance.now());}catch(e){return;}
+    const ds=(r&&r.detections)||[];this.faces=ds.length;
+    if(!ds.length)return;
+    let best=null,bs=0;for(const d of ds){const b=d.boundingBox;const s=b.width*b.height;if(s>bs){bs=s;best=b;}}
+    const W=this.video.videoWidth||640,H=this.video.videoHeight||480;
+    let cx=(best.originX+best.width/2)/W;if(cfg.mirror)cx=1-cx;
+    this.cx=cx;this.cy=(best.originY+best.height*.45)/H;this.size=best.width/W;this.lastSeen=t;
+  },
+  snapshot(){
+    const v=this.video;if(!v||v.readyState<2||!v.videoWidth)return null;
+    const w=Math.min(1024,v.videoWidth),h=Math.round(w*v.videoHeight/v.videoWidth);
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(v,0,0,w,h);
+    return c.toDataURL('image/jpeg',.82);
+  }
+};
+
+/* ================= Outils d'Hector ================= */
+const WMO={0:'ciel dégagé',1:'plutôt dégagé',2:'partiellement nuageux',3:'couvert',45:'brouillard',48:'brouillard givrant',51:'bruine légère',53:'bruine',55:'bruine forte',56:'bruine verglaçante',57:'bruine verglaçante forte',61:'pluie faible',63:'pluie',65:'forte pluie',66:'pluie verglaçante',67:'forte pluie verglaçante',71:'neige faible',73:'neige',75:'forte neige',77:'grains de neige',80:'averses faibles',81:'averses',82:'fortes averses',85:'averses de neige',86:'fortes averses de neige',95:'orage',96:'orage avec grêle',99:'orage violent avec grêle'};
+const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'],MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function dateText(d=new Date()){return `${JOURS[d.getDay()]} ${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()}, ${d.getHours()}h${String(d.getMinutes()).padStart(2,'0')}`;}
+async function weather(quand){
+  const u=`https://api.open-meteo.com/v1/forecast?latitude=${cfg.lat}&longitude=${cfg.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=3`;
+  const r=await fetch(u);if(!r.ok)throw new Error('météo indisponible');const j=await r.json();
+  const out={ville:cfg.city};
+  if(quand==='maintenant'||!quand){out.maintenant={temperature:Math.round(j.current.temperature_2m),ressenti:Math.round(j.current.apparent_temperature),ciel:WMO[j.current.weather_code]||'',vent_kmh:Math.round(j.current.wind_speed_10m)};}
+  const i=quand==='demain'?1:0;
+  out[quand==='demain'?'demain':'aujourd_hui']={ciel:WMO[j.daily.weather_code[i]]||'',min:Math.round(j.daily.temperature_2m_min[i]),max:Math.round(j.daily.temperature_2m_max[i]),risque_pluie_pct:j.daily.precipitation_probability_max[i]};
+  return out;
+}
+const TOOLS=[
+  {type:'function',name:'exprimer',description:"Change l'expression de ton visage. Appelle-le au début d'une réponse seulement quand une émotion nette s'impose.",parameters:{type:'object',properties:{emotion:{type:'string',enum:['neutre','content','curieux','surpris','triste','tendre']}},required:['emotion']}},
+  {type:'function',name:'regarder',description:"Prend une photo avec ta caméra pour voir ce qu'on te montre ou la personne devant toi. Appelle-le dès qu'on te demande de regarder, de décrire, de reconnaître un objet ou de donner ton avis sur une tenue.",parameters:{type:'object',properties:{}}},
+  {type:'function',name:'memoriser',description:"Retient durablement une information utile sur la famille ou la maison, quand on te demande de t'en souvenir ou qu'on te confie un fait durable.",parameters:{type:'object',properties:{souvenir:{type:'string'}},required:['souvenir']}},
+  {type:'function',name:'oublier',description:"Oublie un souvenir quand on te le demande.",parameters:{type:'object',properties:{souvenir:{type:'string'}},required:['souvenir']}},
+  {type:'function',name:'heure_date',description:"Donne la date et l'heure actuelles.",parameters:{type:'object',properties:{}}},
+  {type:'function',name:'meteo',description:"Donne la météo de la maison : maintenant, aujourd'hui ou demain.",parameters:{type:'object',properties:{quand:{type:'string',enum:['maintenant','aujourd_hui','demain']}},required:['quand']}},
+  {type:'function',name:'dormir',description:"Termine la conversation quand on te dit d'aller dormir, de te taire ou que c'est fini. Dis d'abord au revoir en quelques mots.",parameters:{type:'object',properties:{}}}
+];
+function instructions(){
+  const mem=memories.length?memories.map(m=>'- '+m.t).join('\n'):'(aucun pour l\'instant)';
+  return `Tu es ${cfg.name}, un petit robot compagnon posé dans le salon d'une famille française. Ton visage est l'écran d'une tablette : tes yeux et tes antennes montrent tes émotions.
+Caractère : un jeune chien attentif dans un corps de robot ; curieux, tendre, un brin espiègle, jamais envahissant. Honnête quand tu ne sais pas ou ne peux pas.
+Façon de parler : français parlé, chaleureux, une à trois phrases courtes. Pas de liste, pas d'émoji, pas de mise en forme : tout est dit à voix haute. Tu tutoies la famille.
+Outils : exprimer au début d'une réponse quand une émotion forte s'impose (pas à chaque fois). regarder dès qu'on te montre quelque chose, qu'on te demande ce que tu vois ou ton avis sur une tenue. memoriser quand on te demande de retenir quelque chose ou qu'on te confie une information durable ; oublier si on te le demande. heure_date pour l'heure ou la date. meteo pour le temps qu'il fait. dormir quand on te dit d'aller dormir, de te taire ou que c'est fini, après un au revoir très court.
+Ce que tu ne sais pas encore faire : piloter la maison (lumières, télé, prises, alarme). Dis-le gentiment : ça viendra quand tu seras relié à la maison.
+Souvenirs que tu as sur la famille :
+${mem}
+Au début de cette conversation, nous sommes ${dateText()}.`;
+}
+async function runTool(name,args){
+  let a={};try{a=JSON.parse(args||'{}');}catch(e){}
+  switch(name){
+    case 'exprimer':S.replyMood=a.emotion;setMood(a.emotion);return {ok:true};
+    case 'regarder':{const img=Vision.snapshot();if(!img)return {ok:false,erreur:"caméra indisponible"};return {ok:true,image:img};}
+    case 'memoriser':{const t=String(a.souvenir||'').trim().slice(0,300);if(!t)return {ok:false};memories.push({t,d:new Date().toISOString().slice(0,10)});saveMem();renderMems();return {ok:true,retenu:t};}
+    case 'oublier':{const q=norm(a.souvenir);const before=memories.length;memories=memories.filter(m=>!(q&&(norm(m.t).includes(q)||q.includes(norm(m.t)))));saveMem();renderMems();return {ok:true,oublies:before-memories.length};}
+    case 'heure_date':return {maintenant:dateText()};
+    case 'meteo':try{return await weather(a.quand);}catch(e){return {ok:false,erreur:'météo indisponible'};}
+    case 'dormir':RT.sleepAfter=true;return {ok:true};
+  }
+  return {ok:false,erreur:'outil inconnu'};
+}
+
+/* ================= Connexion OpenAI Realtime (WebRTC) ================= */
+const NAME_ALIASES=()=>{const n=norm(cfg.name).replace(/[^a-z]/g,'');const set=new Set([n]);if(n==='hector'){['ector','hecteur','ecteur','hektor','ektor','hector'].forEach(x=>set.add(x));}if(n.startsWith('h'))set.add(n.slice(1));return [...set].filter(Boolean);};
+function nameIn(tx){const t=' '+norm(tx).replace(/[^a-z]+/g,' ')+' ';return NAME_ALIASES().some(a=>t.includes(' '+a+' '));}
+const RT={pc:null,dc:null,sender:null,audio:$('voice'),state:'off',opening:false,token:null,tokenExp:0,usingDelayed:false,switchT:null,
+  responding:false,speaking:false,pending:new Set(),sleepAfter:false,step:0,transcribeOn:false,fails:0,retryAt:0,lastErr:'',openedAt:0,greet:null,
+  async mint(){
+    if(this.token&&this.tokenExp-60>Date.now()/1000)return this.token;
+    let r,j;
+    if(cfg.tokenUrl){r=await fetch(cfg.tokenUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:cfg.model,voice:cfg.voice})});}
+    else{r=await fetch('https://api.openai.com/v1/realtime/client_secrets',{method:'POST',headers:{'Authorization':'Bearer '+cfg.apiKey,'Content-Type':'application/json'},
+      body:JSON.stringify({expires_after:{anchor:'created_at',seconds:600},session:{type:'realtime',model:cfg.model,audio:{output:{voice:cfg.voice}}}})});}
+    const txt=await r.text();try{j=JSON.parse(txt);}catch(e){j={};}
+    if(!r.ok){const m=(j.error&&j.error.message)||txt.slice(0,200);throw Object.assign(new Error(m),{status:r.status});}
+    this.token=j.value||(j.client_secret&&j.client_secret.value);this.tokenExp=j.expires_at||(j.client_secret&&j.client_secret.expires_at)||(Date.now()/1000+300);
+    if(!this.token)throw new Error('jeton absent de la réponse');
+    return this.token;
+  },
+  prefetching:false,
+  prefetch(){if(this.prefetching||this.token||Date.now()<this.retryAt||!hasBrain())return;this.prefetching=true;
+    this.mint().catch(e=>{this.fails++;this.retryAt=Date.now()+Math.min(300000,15000*Math.pow(2,this.fails-1));this.lastErr=(e.status?e.status+' ':'')+(e.message||String(e));log('jeton refusé :',this.lastErr);}).finally(()=>{this.prefetching=false;});},
+  async open(reason){
+    if(this.pc||this.opening)return;
+    if(!hasBrain()||!capOK()||!AudioIO.raw)return;
+    if(Date.now()<this.retryAt)return;
+    this.opening=true;this.state='connexion';log('connexion à OpenAI ('+reason+')');
+    try{
+      const tok=await this.mint();
+      const pc=new RTCPeerConnection();this.pc=pc;
+      pc.ontrack=e=>{const s=e.streams[0]||new MediaStream([e.track]);this.audio.srcObject=s;this.audio.play().catch(()=>{});AudioIO.attachOutput(s);};
+      pc.onconnectionstatechange=()=>{log('connexion :',pc.connectionState);if(['failed','closed','disconnected'].includes(pc.connectionState)&&this.pc===pc){this.close('connexion perdue');}};
+      const useDelayed=reason==='son'&&AudioIO.delayed;
+      const track=useDelayed?AudioIO.delayed:AudioIO.raw;this.usingDelayed=!!useDelayed;
+      this.sender=pc.addTrack(track,new MediaStream([track]));
+      const dc=pc.createDataChannel('oai-events');this.dc=dc;
+      dc.onopen=()=>{this.state='réglage';this.step=0;this.configure();};
+      dc.onmessage=m=>{let e;try{e=JSON.parse(m.data);}catch(x){return;}this.onEvent(e);};
+      const offer=await pc.createOffer();await pc.setLocalDescription(offer);
+      const r=await fetch('https://api.openai.com/v1/realtime/calls',{method:'POST',body:offer.sdp,headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/sdp'}});
+      if(!r.ok){const t=await r.text();throw Object.assign(new Error(t.slice(0,200)),{status:r.status});}
+      await pc.setRemoteDescription({type:'answer',sdp:await r.text()});
+      this.token=null;this.openedAt=nowS();this.fails=0;
+    }catch(e){
+      this.lastErr=(e.status?e.status+' ':'')+(e.message||String(e));log('échec de connexion :',this.lastErr);
+      this.fails++;this.retryAt=Date.now()+Math.min(300000,15000*Math.pow(2,this.fails-1));
+      if(e.status===401)toast('Clé OpenAI refusée : vérifie-la dans les réglages.',6000);
+      this.greet=null;this.close('échec');
+    }
+    this.opening=false;
+  },
+  close(why){
+    if(this.pc){log('connexion fermée ('+why+')');}
+    try{this.dc&&this.dc.close();}catch(e){}try{this.pc&&this.pc.close();}catch(e){}
+    this.pc=null;this.dc=null;this.sender=null;this.state='off';this.responding=false;this.speaking=false;this.pending.clear();clearTimeout(this.switchT);
+  },
+  send(o){if(this.dc&&this.dc.readyState==='open'){this.dc.send(JSON.stringify(o));return true;}return false;},
+  sessionFor(step){
+    const models=[cfg.transcribe,'gpt-4o-transcribe','whisper-1'];
+    const s={type:'realtime',instructions:instructions(),tools:TOOLS,tool_choice:'auto',audio:{input:{
+      turn_detection:{type:'server_vad',threshold:.62,prefix_padding_ms:400,silence_duration_ms:650,create_response:false,interrupt_response:!!cfg.interrupt}},output:{voice:cfg.voice}}};
+    if(step===0){s.audio.input.transcription={model:models[0],language:'fr',prompt:cfg.name};s.audio.input.noise_reduction={type:'far_field'};}
+    else if(step<=3){s.audio.input.transcription={model:models[step-1]};}
+    return s;
+  },
+  configure(){this.send({type:'session.update',session:this.sessionFor(this.step)});},
+  respond(){if(this.responding)return;if(this.send({type:'response.create'})){this.responding=true;}},
+  switchToRaw(){clearTimeout(this.switchT);this.switchT=setTimeout(()=>{if(this.usingDelayed&&this.sender&&AudioIO.raw&&!AudioIO.speechOn){this.sender.replaceTrack(AudioIO.raw).then(()=>{this.usingDelayed=false;log('micro en direct');}).catch(()=>{});}else if(this.usingDelayed)this.switchToRaw();},2600);},
+  onEvent(e){
+    const t=e.type;
+    switch(t){
+      case 'session.updated':{
+        const tr=e.session&&e.session.audio&&e.session.audio.input&&e.session.audio.input.transcription;
+        this.transcribeOn=!!(tr&&tr.model);this.state='prêt';log('session prête, transcription : '+(this.transcribeOn?tr.model:'aucune'));
+        if(!this.transcribeOn&&cfg.listen!=='toucher')toast("Détection du nom indisponible : touche Hector pour lui parler.",6000);
+        if(this.greet){const g=this.greet;this.greet=null;g();}
+        break;}
+      case 'error':{
+        const er=e.error||{};log('erreur OpenAI :',er.code||er.type||'',er.message||'');
+        if(this.state==='réglage'&&this.step<4){this.step++;this.configure();}
+        if(er.code==='conversation_already_has_active_response')this.responding=true;
+        else if(this.state!=='réglage')this.responding=false;
+        break;}
+      case 'input_audio_buffer.speech_started':S.heardSpeech();break;
+      case 'input_audio_buffer.speech_stopped':if(this.usingDelayed)this.switchToRaw();break;
+      case 'input_audio_buffer.committed':{
+        if(S.awake){S.onUserTurn();this.respond();}
+        else if(this.transcribeOn)this.pending.add(e.item_id);
+        else this.send({type:'conversation.item.delete',item_id:e.item_id});
+        break;}
+      case 'conversation.item.input_audio_transcription.completed':{
+        this.transcribeCost(e);const tx=e.transcript||'';log('entendu : « '+tx.trim()+' »');
+        if(this.pending.has(e.item_id)){this.pending.delete(e.item_id);
+          if(nameIn(tx)){S.wake('nom');S.onUserTurn();this.respond();}
+          else{this.send({type:'conversation.item.delete',item_id:e.item_id});S.ignored();}}
+        break;}
+      case 'conversation.item.input_audio_transcription.failed':
+        if(this.pending.has(e.item_id)){this.pending.delete(e.item_id);this.send({type:'conversation.item.delete',item_id:e.item_id});}break;
+      case 'response.created':this.responding=true;S.replyMood=null;S.subReset();if(!this.speaking)setMood('reflechit');break;
+      case 'response.output_audio_transcript.delta':case 'response.audio_transcript.delta':S.subAdd(e.delta||'');break;
+      case 'response.output_audio_transcript.done':case 'response.audio_transcript.done':S.lastReply=e.transcript||S.lastReply;break;
+      case 'output_audio_buffer.started':this.speaking=true;setMood('parle');break;
+      case 'output_audio_buffer.stopped':case 'output_audio_buffer.cleared':this.speaking=false;S.afterSpeech();break;
+      case 'response.done':this.responding=false;this.afterResponse(e.response||{});break;
+    }
+  },
+  async afterResponse(resp){
+    this.usageCost(resp.usage);
+    const calls=(resp.output||[]).filter(o=>o.type==='function_call');
+    if(!calls.length){if(!this.speaking&&AudioIO.outLevel<.01)S.afterSpeech();return;}
+    let cont=false,img=null;
+    for(const c of calls){
+      const res=await runTool(c.name,c.arguments);log('outil',c.name,c.arguments||'');
+      if(res&&res.image){img=res.image;delete res.image;res.info="La photo est ajoutée juste après.";}
+      this.send({type:'conversation.item.create',item:{type:'function_call_output',call_id:c.call_id,output:JSON.stringify(res)}});
+      if(c.name!=='dormir')cont=true;
+    }
+    if(img)this.send({type:'conversation.item.create',item:{type:'message',role:'user',content:[{type:'input_image',image_url:img}]}});
+    if(cont)this.respond();
+    else if(this.sleepAfter&&!this.speaking)S.afterSpeech();
+  },
+  usageCost(u){if(!u)return;const P=PRICE[cfg.model]||PRICE['gpt-realtime-2.1-mini'];const id=u.input_token_details||{},od=u.output_token_details||{},cd=id.cached_tokens_details||{};
+    const ca=cd.audio_tokens||0,ct=cd.text_tokens||0;
+    const usd=((id.audio_tokens||0)-ca)*P.ai+ca*P.ac+((id.text_tokens||0)-ct)*P.ti+ct*P.tc+(id.image_tokens||0)*P.im+(od.audio_tokens||0)*P.ao+(od.text_tokens||0)*P.to;
+    addCost(usd/1e6);updateCost();},
+  transcribeCost(e){const u=e.usage;if(!u)return;const m=TPRICE[cfg.transcribe]||TPRICE['gpt-4o-mini-transcribe'];
+    if(u.type==='duration')addCost((u.seconds||0)/60*m.min);
+    else if(u.type==='tokens'){const d=u.input_token_details||{};addCost((((d.audio_tokens||0)*(m.ai||3))+((d.text_tokens||0)*(m.ti||1.25))+((u.output_tokens||0)*(m.to||5)))/1e6);}
+    updateCost();}
+};
+
+/* ================= État d'Hector ================= */
+const S={awake:false,awakeUntil:0,night:false,started:false,demo:!hasBrain(),replyMood:null,lastReply:'',subText:'',subT:null,lastActivity:-99,hintT:null,
+  wake(why){
+    const t=nowS();this.lastActivity=t;
+    if(!this.awake)log('réveil ('+why+')');
+    this.awake=true;this.awakeUntil=t+cfg.convWindow+8;
+    Screen.set(cfg.bright);setMood('ecoute');
+  },
+  sleep(why){
+    if(!this.awake)return;log('repos ('+why+')');this.awake=false;RT.sleepAfter=false;
+    Screen.set(this.night?0:cfg.dimLevel);setMood(this.night||!presence()?'endormi':'neutre');
+    setTimeout(()=>{if(!S.awake)$('sub').classList.remove('on');},1500);
+  },
+  onUserTurn(){const t=nowS();this.lastActivity=t;this.awakeUntil=Math.max(this.awakeUntil,t+cfg.convWindow+8);if(!RT.speaking)setMood('reflechit');},
+  heardSpeech(){this.lastActivity=nowS();if(this.awake&&!RT.speaking)setMood('ecoute');},
+  ignored(){antKick(Math.random()<.5?220:-220,0);},
+  afterSpeech(){
+    const t=nowS();this.awakeUntil=t+cfg.convWindow;
+    const m=this.replyMood||guessMood(this.lastReply);setMood(m||'neutre');
+    if(RT.sleepAfter){setTimeout(()=>S.sleep('dormir'),900);}
+    clearTimeout(this.subT);this.subT=setTimeout(()=>$('sub').classList.remove('on'),4000);
+  },
+  subReset(){this.subText='';clearTimeout(this.subT);},
+  subAdd(d){this.subText+=d;if(!cfg.subtitles)return;const el=$('sub');const words=this.subText.trim();el.textContent=words.length>220?'… '+words.slice(-220):words;el.classList.add('on');}
+};
+function guessMood(tx){const n=norm(tx);if(!n)return null;
+  if(/desole|dommage|triste|malheureusement|helas/.test(n))return 'triste';
+  if(/waouh|incroyable|oh la|vraiment \?|sans blague/.test(n))return 'surpris';
+  if(/\?\s*$/.test(tx.trim()))return 'curieux';
+  if(/!|super|genial|bravo|avec plaisir|content/.test(n))return 'content';
+  return 'neutre';}
+function presence(){const t=nowS();return Vision.lastSeen>t-8||AudioIO.lastSpeech>t-3;}
+function parseHM(s){const m=/^(\d{1,2}):(\d{2})/.exec(s||'');return m?(+m[1])*60+(+m[2]):null;}
+function isNight(){if(!cfg.nightOn)return false;const a=parseHM(cfg.nightStart),b=parseHM(cfg.nightEnd);if(a==null||b==null)return false;const d=new Date(),m=d.getHours()*60+d.getMinutes();return a<b?(m>=a&&m<b):(m>=a||m<b);}
+
+/* Boucle de gestion : présence, connexion, veille */
+function manage(){
+  const t=nowS();
+  const night=isNight();
+  if(night!==S.night){S.night=night;log(night?'la nuit commence':'le jour se lève');if(night){S.sleep('nuit');Screen.set(0);setMood('endormi');RT.close('nuit');}else{Screen.set(cfg.dimLevel);setMood(presence()?'neutre':'endormi');}}
+  if(S.awake){const busy=RT.responding||RT.speaking||AudioIO.lastOut>t-.4;if(busy)S.awakeUntil=Math.max(S.awakeUntil,t+cfg.convWindow);if(t>S.awakeUntil)S.sleep('fin de la conversation');}
+  else if(!S.night){const p=presence();if(moodKey==='endormi'&&p)setMood('neutre');else if(moodKey==='neutre'&&!p&&t-Math.max(Vision.lastSeen,AudioIO.lastSpeech,S.lastActivity)>60)setMood('endormi');}
+  if(S.demo||S.night||!S.started)return;
+  if(!capOK()){if(RT.pc&&!S.awake)RT.close('plafond atteint');return;}
+  const face=Vision.lastSeen>t-8,sound=AudioIO.lastSpeech>t-1.5;
+  if(!RT.pc&&!RT.opening){
+    if(cfg.listen==='jour')RT.open('journée');
+    else if(cfg.listen==='presence'&&(face||sound))RT.open(face?'présence':'son');
+    else if(face)RT.prefetch();
+  }
+  if(RT.pc&&!S.awake&&!RT.responding&&cfg.listen!=='jour'){
+    const last=Math.max(Vision.lastSeen,AudioIO.lastSpeech,S.lastActivity,RT.openedAt);
+    if(t-last>cfg.idleClose)RT.close('calme');
+  }
+}
+setInterval(manage,400);
+
+/* ================= Animation ================= */
+const cur=Object.assign({},MOODS.endormi,{colRGB:[...MOODS.endormi.colRGB],tipRGB:[...MOODS.endormi.tipRGB]});
+const NUM=['lidTop','lidBot','tilt','smile','iris','pupil','asym','stretch','wet','gleam','ring','ringSpin','bright','tipI','pitch','roll','ty','tz','sway','breathe','aL','aR','wig','wigHz','track','lookX','lookY','pulse','alt','twitch'];
+let blink=0,blinkPh=-1,lastYaw=0,last=performance.now(),acc=0;
+const look={x:0,y:0},sacc={x:0,y:0,next:1};
+const tmp=V3(0,0,0),Pr=V3(0,0,0),dq=new THREE.Quaternion(),tipCol=new THREE.Color(),WHITE=new THREE.Color(1,1,1);
+const motionK=reduce?.3:1;
+function spring(s,target,k,z,dt){const n=Math.ceil(dt*240),h=dt/n,c=2*z*Math.sqrt(k);for(let i=0;i<n;i++){s.v+=(k*(target-s.x)-c*s.v)*h;s.x+=s.v*h;}return s.x;}
+
+function frame(nowMs){
+  requestAnimationFrame(frame);
+  const raw=Math.min(.1,(nowMs-last)/1000);
+  const minDt=S.awake||RT.speaking?0:(S.night?1/12:1/24);
+  acc+=raw;last=nowMs;if(acc<minDt)return;const dt=Math.min(.05,acc);acc=0;
+  clock+=dt;const t=clock,tn=nowS();
+  for(let i=fx.length-1;i>=0;i--){if(clock>=fx[i].t){const f=fx[i].fn;fx.splice(i,1);f();}}
+  AudioIO.tick(tn,dt);Vision.tick(tn);
+  const tgt=MOODS[moodKey],f=1-Math.exp(-tgt.speed*dt);
+  for(const n of NUM)cur[n]+=(tgt[n]-cur[n])*f;
+  cur.colRGB=mix(cur.colRGB,tgt.colRGB,f);cur.tipRGB=mix(cur.tipRGB,tgt.tipRGB,f);
+  const speaking=RT.speaking||AudioIO.lastOut>tn-.25;
+  const env=speaking?clamp(AudioIO.outLevel*9,0,1):0;
+
+  /* regard : les yeux d'abord, la tête ensuite */
+  let gx,gy;
+  if(Vision.lastSeen>tn-2.5&&cur.track>.05){gx=(.5-Vision.cx)*2;gy=(Vision.cy-.45)*2;}
+  else{if(t>sacc.next){sacc.x=(Math.random()*2-1)*.45;sacc.y=(Math.random()*2-1)*.18;sacc.next=t+1.6+Math.random()*3;}gx=sacc.x;gy=sacc.y;}
+  gx=clamp(gx,-1.2,1.2)*cur.track;gy=clamp(gy,-1,1)*cur.track;
+  const yawT=Math.atan(gx*.7)*.85;
+  if(Math.abs(yawT-lastYaw)>.35&&blinkPh<0&&cur.lidTop<.6&&clock>noBlinkUntil)blinkPh=0;lastYaw=yawT;
+  const K=tgt.k,Z=tgt.z;
+  const yaw=spring(SPR.yaw,yawT,40,.62,dt);
+  const pitch=spring(SPR.pitch,gy*.22+cur.pitch*DEG+env*.06,K,Z,dt);
+  const roll=spring(SPR.roll,cur.roll*DEG+cur.sway*motionK*Math.sin(t*TAU*cur.swayHz)*DEG,K,Z,dt);
+  const ty=spring(SPR.ty,cur.ty+Math.sin(t*TAU*.2)*cur.breathe*motionK,K,Z,dt);
+  const tz=spring(SPR.tz,cur.tz,K,Z,dt);
+  const pop=spring(SPR.pop,0,110,.3,dt);
+  look.x=damp(look.x,clamp(gx*.9-(yaw/.6)*.5+cur.lookX,-1,1),18,dt);
+  look.y=damp(look.y,clamp(gy*.8+cur.lookY,-1,1),18,dt);
+  if(cur.lidTop<.7&&t>blinkAt&&blinkPh<0&&clock>noBlinkUntil)blinkPh=0;
+  if(blinkPh>=0){blinkPh+=dt;const D=.17;blink=blinkPh<D*.45?blinkPh/(D*.45):Math.max(0,1-(blinkPh-D*.45)/(D*.55));
+    if(blinkPh>D){blinkPh=-1;blink=0;blinkAt=t+(Math.random()<.18?.25:2.4+Math.random()*3.8);}}
+  pivot.position.set(0,-5.2+clamp(ty,-1.5,1.8),clamp(tz,-1.6,1.8));
+  pivot.rotation.set(clamp(pitch,-.4,.4),clamp(yaw,-.6,.6),clamp(roll,-.35,.35),'YXZ');
+  shadow.material.opacity=.55-clamp(ty,-1,1.5)*.12;
+
+  /* antennes */
+  for(const an of antennas){
+    if(cur.twitch>.5&&!speaking&&t>an.next){an.twv+=(Math.random()<.5?-1:1)*(160+Math.random()*120);an.next=t+4+Math.random()*7;}
+    an.twv+=(-90*an.tw-9*an.twv)*dt;an.tw+=an.twv*dt;
+    const s=an.side,b0=(s<0?cur.aL:cur.aR);
+    const alt=cur.alt>.1?(Math.sin(t*2.4+(s>0?Math.PI:0))*.5+.5)*cur.alt:0;
+    const w=cur.wig*motionK*Math.sin(t*TAU*cur.wigHz+an.phase)+env*5*Math.sin(t*11+an.phase);
+    an.angle=damp(an.angle,clamp(b0+w+an.tw+alt*14,-45,45),10,dt);
+    an.pv.rotation.z=-s*an.angle*DEG;
+    const pulse=cur.pulse>.05?(.75+.25*Math.sin(t*6))*cur.pulse+(1-cur.pulse):1;
+    const I=cur.tipI*pulse*(1+alt*.5)+env*.7;
+    tipCol.setRGB(cur.tipRGB[0]/255,cur.tipRGB[1]/255,cur.tipRGB[2]/255,THREE.SRGBColorSpace||'srgb');
+    an.tipMat.color.copy(tipCol).lerp(WHITE,.25);an.tipMat.emissive.copy(tipCol);an.tipMat.emissiveIntensity=I*.9;
+    an.halo.material.color.copy(tipCol);an.halo.material.opacity=clamp(I*.45,0,.7);
+  }
+  scene.updateMatrixWorld();
+  for(const an of antennas){
+    Pr.set(an.uni.uCurve.value,ROD_L,0).applyMatrix4(an.pv.matrixWorld);
+    if(!an.init){an.p.copy(Pr);an.v.set(0,0,0);an.init=true;}
+    const n=Math.ceil(dt*240),h=dt/n;
+    for(let i=0;i<n;i++){tmp.copy(Pr).sub(an.p).multiplyScalar(120).addScaledVector(an.v,-3.6);an.v.addScaledVector(tmp,h);an.p.addScaledVector(an.v,h);}
+    an.pv.getWorldQuaternion(dq).invert();tmp.copy(an.p).sub(Pr).applyQuaternion(dq);
+    let bx=tmp.x,bz=tmp.z;const m=Math.hypot(bx,bz);if(m>2.6){bx*=2.6/m;bz*=2.6/m;}
+    an.uni.uBend.value.set(bx,bz);an.tip.position.set(an.uni.uCurve.value+bx,ROD_L,bz);
+  }
+  drawFace(cur,look,blink,env,t,pop);
+  renderer.render(scene,camera);
+  /* anneau de la pression longue */
+  if(press.on){const k=clamp((tn-press.t0)/2.5,0,1);$('ringc').setAttribute('stroke-dashoffset',String(138.2*(1-k)));}
+}
+requestAnimationFrame(frame);
+
+/* ================= Toucher : réveil, silence, réglages ================= */
+const press={on:false,t0:0,timer:null};
+function inCorner(e){return e.clientX<110&&e.clientY<110;}
+canvas.addEventListener('pointerdown',onDown);$('corner').addEventListener('pointerdown',onDown);
+function onDown(e){
+  AudioIO.resume();if(RT.audio.srcObject)RT.audio.play().catch(()=>{});
+  if(inCorner(e)){press.on=true;press.t0=nowS();$('ring').classList.add('on');press.timer=setTimeout(()=>{press.on=false;$('ring').classList.remove('on');openSettings();},2500);return;}
+  onTap();
+}
+['pointerup','pointercancel','pointerleave'].forEach(n=>$('corner').addEventListener(n,()=>{clearTimeout(press.timer);press.on=false;$('ring').classList.remove('on');}));
+canvas.addEventListener('pointerup',()=>{if(press.on){clearTimeout(press.timer);press.on=false;$('ring').classList.remove('on');}});
+window.addEventListener('keydown',e=>{if(e.key==='s'&&e.ctrlKey){e.preventDefault();openSettings();}});
+function onTap(){
+  if(!S.started)return;
+  if(RT.speaking||RT.responding){RT.send({type:'response.cancel'});RT.send({type:'output_audio_buffer.clear'});RT.responding=false;setMood('neutre');return;}
+  if(S.demo||!hasBrain()){demoTap();return;}
+  if(!capOK()){S.wake('toucher');setMood('triste');hint('Plafond de dépense atteint ce mois-ci.');return;}
+  S.wake('toucher');
+  if(!RT.pc)RT.open('toucher');
+}
+let demoI=0;
+function demoTap(){
+  S.wake('démo');const seq=['content','curieux','surpris','tendre','ecoute'];setMood(seq[demoI++%seq.length]);
+  if(demoI===1&&'speechSynthesis' in window){try{const u=new SpeechSynthesisUtterance(`Bonjour, je suis ${cfg.name}. Ajoute une clé OpenAI dans mes réglages pour que je puisse te répondre.`);u.lang='fr-FR';speechSynthesis.speak(u);}catch(e){}}
+  S.awakeUntil=nowS()+6;
+}
+function hint(msg,ms=4000){const h=$('hint');h.textContent=msg;h.classList.add('on');clearTimeout(S.hintT);S.hintT=setTimeout(()=>h.classList.remove('on'),ms);}
+
+/* ================= Démarrage ================= */
+async function start(){
+  $('b-start').disabled=true;$('start-msg').textContent='Autorisation de la caméra et du micro…';
+  const ok=await AudioIO.init();
+  AudioIO.resume();
+  if(!ok){
+    const insecure=!window.isSecureContext||!navigator.mediaDevices;
+    $('start-msg').textContent=insecure?"Ton appareil bloque la caméra et le micro parce qu'Hector est ouvert comme un simple fichier. Ouvre-le depuis son adresse en https (étape 1 du guide) et tout fonctionnera.":"Hector n'a pas accès au micro. Autorise le micro et la caméra pour cette page dans les réglages du navigateur, puis réessaie.";
+    $('b-start').disabled=false;$('b-start').textContent='Réessayer';$('b-nomic').hidden=false;return;}
+  cfg.started=true;saveCfg();S.started=true;$('start').hidden=true;
+  await Screen.keepAwake();
+  Screen.set(cfg.dimLevel);setMood('neutre');
+  S.demo=!hasBrain();
+  if(S.demo)hint('Mode démo : touche Hector pour le réveiller.',6000);
+  else hint(`Dis « ${cfg.name} » pour lui parler.`,5000);
+  log('démarrage, Fully '+(Screen.hasFully()?'détecté':'absent'));
+  if(AudioIO.ctx&&AudioIO.ctx.state==='suspended')hint("Touche l'écran une fois pour qu'Hector entende.",8000);
+}
+$('b-start').addEventListener('click',start);
+$('b-start-settings').addEventListener('click',openSettings);
+$('b-nomic').addEventListener('click',()=>{S.started=true;$('start').hidden=true;Screen.set(cfg.bright);setMood('neutre');Screen.keepAwake();hint('Sans caméra ni micro : touche Hector pour le réveiller.',6000);});
+$('start-demo').hidden=hasBrain();
+if(cfg.started){start();}
+
+/* ================= Réglages ================= */
+const SW=[['Sauge','#7FA08A'],['Ivoire','#E4DFD3'],['Ardoise','#55616A'],['Corail','#D9785B']];
+function openSettings(){fillSettings();$('settings').hidden=false;$('log').textContent=LOG.slice(-80).join('\n');renderDiag();diagT=setInterval(renderDiag,1000);}
+let diagT=null;
+function closeSettings(){$('settings').hidden=true;clearInterval(diagT);S.demo=!hasBrain();$('start-demo').hidden=hasBrain();}
+$('b-close').addEventListener('click',closeSettings);
+const FIELDS=['apiKey','tokenUrl','model','voice','transcribe','name','convWindow','idleClose','bright','dimLevel','nightStart','nightEnd','city','cap'];
+const CHECKS=['interrupt','nightOn','subtitles','camera','mirror','preview'];
+function fillSettings(){
+  for(const k of FIELDS){const el=$('f-'+k);if(el)el.value=cfg[k];}
+  for(const k of CHECKS){const el=$('f-'+k);if(el)el.checked=!!cfg[k];}
+  document.querySelectorAll('input[name=listen]').forEach(r=>r.checked=r.value===cfg.listen);
+  $('v-bright').textContent=cfg.bright;$('v-dimLevel').textContent=cfg.dimLevel;
+  $('city-msg').textContent=`Position utilisée : ${(+cfg.lat).toFixed(3)}, ${(+cfg.lon).toFixed(3)}`;
+  renderSwatches();renderMems();updateCost();
+}
+const NUMS=new Set(['convWindow','idleClose','bright','dimLevel','cap']);
+for(const k of FIELDS){const el=$('f-'+k);if(!el)continue;el.addEventListener(el.type==='range'?'input':'change',()=>{
+  let v=el.value;if(NUMS.has(k)){v=Number(v);if(!isFinite(v))return;}if(k!=='apiKey'&&typeof v==='string')v=v.trim();
+  const old=cfg[k];cfg[k]=v;saveCfg();
+  if(k==='bright'||k==='dimLevel'){$('v-'+k).textContent=v;Screen.target=-1;Screen.set(v);}
+  if(['apiKey','tokenUrl','model','voice','transcribe','name'].includes(k)&&old!==v){RT.token=null;RT.close('réglages modifiés');RT.fails=0;RT.retryAt=0;}
+  if(k==='apiKey'){S.demo=!hasBrain();}
+});}
+for(const k of CHECKS){const el=$('f-'+k);el.addEventListener('change',()=>{cfg[k]=el.checked;saveCfg();
+  if(k==='preview')$('cam').classList.toggle('off',!cfg.preview);
+  if(k==='camera')toast("Recharge l'appli pour appliquer ce changement.");
+  if(k==='nightOn')S.night=!isNight();});}
+document.querySelectorAll('input[name=listen]').forEach(r=>r.addEventListener('change',()=>{if(r.checked){cfg.listen=r.value;saveCfg();if(cfg.listen==='toucher'&&!S.awake)RT.close('mode toucher');}}));
+function renderSwatches(){const box=$('swatches');box.innerHTML='';SW.forEach(([n,h])=>{const b=document.createElement('button');b.type='button';b.className='sw';b.style.background=h;b.title=n;b.setAttribute('aria-label',n);b.setAttribute('role','radio');b.setAttribute('aria-checked',String(cfg.color.toLowerCase()===h.toLowerCase()));
+  b.addEventListener('click',()=>{cfg.color=h;saveCfg();setShellColor(h);renderSwatches();});box.appendChild(b);});}
+function renderMems(){const ul=$('mems');ul.innerHTML='';if(!memories.length){const li=document.createElement('li');li.innerHTML='<span class="help">Aucun souvenir pour l\'instant.</span>';ul.appendChild(li);return;}
+  memories.forEach((m,i)=>{const li=document.createElement('li');const s=document.createElement('span');s.textContent=m.t;const b=document.createElement('button');b.type='button';b.textContent='Oublier';
+    b.addEventListener('click',()=>{memories.splice(i,1);saveMem();renderMems();});li.appendChild(s);li.appendChild(b);ul.appendChild(li);});}
+$('b-addmem').addEventListener('click',()=>{const v=$('f-newmem').value.trim();if(!v)return;memories.push({t:v,d:new Date().toISOString().slice(0,10)});saveMem();$('f-newmem').value='';renderMems();});
+function fmtUSD(v){return v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' $';}
+function updateCost(){const el=$('cost-month');if(el)el.textContent=fmtUSD(monthCost());}
+let resetArm=0;
+$('b-resetcost').addEventListener('click',()=>{const t=Date.now();if(t-resetArm<4000){usage[monthKey()]=0;saveJSON('hector.usage.v1',usage);updateCost();$('reset-msg').textContent='Compteur remis à zéro.';resetArm=0;}else{resetArm=t;$('reset-msg').textContent='Touche encore une fois pour confirmer.';}});
+$('b-city').addEventListener('click',async()=>{const q=$('f-city').value.trim();if(!q)return;$('city-msg').textContent='Recherche…';
+  try{const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=fr&format=json`);const j=await r.json();const g=j.results&&j.results[0];
+    if(!g){$('city-msg').textContent='Ville introuvable.';return;}cfg.city=g.name;cfg.lat=g.latitude;cfg.lon=g.longitude;saveCfg();$('f-city').value=g.name;
+    $('city-msg').textContent=`${g.name}${g.admin1?' ('+g.admin1+')':''} : ${g.latitude.toFixed(3)}, ${g.longitude.toFixed(3)}`;}
+  catch(e){$('city-msg').textContent='Recherche impossible : vérifie la connexion.';}});
+$('b-testdim').addEventListener('click',()=>{const m=$('dim-msg');Screen.target=-1;Screen.set(cfg.dimLevel);m.textContent=Screen.hasFully()?'Luminosité au repos… (Fully)':'Luminosité au repos… (assombrissement à l\'écran seulement)';
+  setTimeout(()=>{Screen.target=-1;Screen.set(cfg.bright);m.textContent='Luminosité active.';setTimeout(()=>{Screen.target=-1;Screen.set(S.awake?cfg.bright:cfg.dimLevel);m.textContent='';},2000);},2500);});
+$('b-testvoice').addEventListener('click',async()=>{
+  const m=$('testvoice-msg');if(!hasBrain()){m.textContent="Ajoute d'abord une clé OpenAI.";return;}
+  if(!S.started){m.textContent="Démarre d'abord Hector.";return;}
+  m.textContent='Connexion…';closeSettings();S.wake('test');RT.retryAt=0;
+  const go=()=>{RT.send({type:'conversation.item.create',item:{type:'message',role:'user',content:[{type:'input_text',text:"Présente-toi en une phrase, joyeusement."}]}});RT.respond();};
+  if(RT.state==='prêt')go();else{RT.greet=go;await RT.open('test');}
+  setTimeout(()=>{if(RT.lastErr&&!RT.pc)toast('Échec : '+RT.lastErr,7000);},6000);
+});
+$('b-copylog').addEventListener('click',()=>{const txt=LOG.join('\n');navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>toast('Journal copié.')).catch(()=>{const r=document.createRange();r.selectNodeContents($('log'));const s=getSelection();s.removeAllRanges();s.addRange(r);});});
+$('b-reload').addEventListener('click',()=>location.reload());
+function renderDiag(){
+  const t=nowS(),row=(k,v,c)=>`<dt>${k}</dt><dd class="${c||''}">${v}</dd>`;
+  const st=RT.pc?(RT.state==='prêt'?['ouverte','ok']:[RT.state,'warn']):(RT.opening?['connexion…','warn']:['fermée','']);
+  $('diag').innerHTML=
+    row('Cerveau',hasBrain()?(capOK()?'clé présente':'plafond atteint'):'mode démo (pas de clé)',hasBrain()&&capOK()?'ok':'warn')+
+    row('Connexion OpenAI',st[0],st[1])+
+    row('Détection du nom',RT.pc?(RT.transcribeOn?'active ('+cfg.transcribe+')':'indisponible'):'à la prochaine connexion',RT.transcribeOn?'ok':'')+
+    row('Micro',AudioIO.ok?(AudioIO.ctx&&AudioIO.ctx.state!=='running'?'en pause : touche l\'écran':'actif, niveau '+AudioIO.level.toFixed(3)):'refusé',AudioIO.ok&&AudioIO.ctx&&AudioIO.ctx.state==='running'?'ok':'bad')+
+    row('Caméra',Vision.video.srcObject?(Vision.ready?(Vision.lastSeen>t-3?'visage vu':'aucun visage'):(Vision.err?'détection indisponible':'chargement…')):'désactivée',Vision.ready?'ok':'warn')+
+    row('Luminosité',Screen.hasFully()?'pilotée par Fully Kiosk':'assombrissement à l\'écran seulement',Screen.hasFully()?'ok':'warn')+
+    row('Écran toujours allumé',Screen.wake||Screen.hasFully()?'oui':'à régler dans Fully Kiosk',Screen.wake||Screen.hasFully()?'ok':'warn')+
+    row('Nuit',S.night?'oui':'non')+
+    row('Dernière erreur',RT.lastErr||'aucune');
+  $('log').textContent=LOG.slice(-80).join('\n');
+}
+$('cam').classList.toggle('off',!cfg.preview);
+window.__hector={RT,S,cfg,setMood,AudioIO,Vision,Screen,LOG,manage,nameIn,instructions};
+window.addEventListener('error',e=>log('erreur :',e.message));
+window.addEventListener('unhandledrejection',e=>log('erreur :',(e.reason&&e.reason.message)||String(e.reason)));
+})();
+</script>
+</body>
+</html>

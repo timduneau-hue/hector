@@ -828,11 +828,12 @@ const GM_TOOLS=[{functionDeclarations:TOOLS.map(t=>{const d={name:t.name,descrip
   if(Object.keys(pr).length){const p={};for(const k in pr){p[k]={type:'STRING'};if(pr[k].enum)p[k].enum=pr[k].enum;}d.parameters={type:'OBJECT',properties:p,required:(t.parameters.required||[])};}return d;})}];
 function gmInstructions(){return instructions()+`
 Règle d'or : tu ne parles que si l'on s'adresse à toi. On s'adresse à toi quand la phrase contient ton prénom, ${cfg.name}, ou quand la personne te répond dans les quelques secondes qui suivent ta dernière réponse. Les conversations entre d'autres personnes, la télévision, la radio ou les bruits de la maison ne te sont pas adressés : reste alors totalement silencieux.
+Mais dès qu'une phrase contient ton prénom, tu réponds toujours, même si tu viens de rester silencieux longtemps ou si l'on t'a seulement appelé (« ${cfg.name} ? » : réponds par exemple « Oui ? Je t'écoute. »).
 Tu parles toujours en français.`;}
 function b64FromBytes(u8){let s='';const C=0x8000;for(let i=0;i<u8.length;i+=C)s+=String.fromCharCode.apply(null,u8.subarray(i,i+C));return btoa(s);}
 const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,sleepAfter:false,greet:null,lastErr:'',transcribeOn:false,proactiveOn:false,
   retryAt:0,fails:0,token:null,openedAt:0,step:0,handle:null,turnAudio:false,muteTurn:false,userTx:'',nameHeard:false,sources:[],nextTime:0,openAskT:0,manualVad:true,activity:false,
-  failKind:'',lastSrvT:0,awaitT:0,replay:null,openTimer:null,lastHintT:0,lastUtt:null,
+  failKind:'',lastSrvT:0,awaitT:0,replay:null,openTimer:null,lastHintT:0,lastUtt:null,uttId:0,uttEndT:0,lastModelT:0,nudged:false,nudgeT:null,
   audio:{srcObject:null,play(){return Promise.resolve();}},
   get pc(){return this.ws;},
   prefetch(){},
@@ -849,17 +850,31 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
   send(o){if(this.ws&&this.ws.readyState===1){this.ws.send(JSON.stringify(o));return true;}return false;},
   sendPcm(chunk){this.send({realtimeInput:{audio:{data:b64FromBytes(new Uint8Array(chunk.buffer)),mimeType:'audio/pcm;rate=16000'}}});},
   /* début de parole : on ouvre un « tour » et on envoie aussi le son juste avant, pour ne pas couper « Hector » */
+  newUtt(){this.uttId++;this.userTx='';this.nameHeard=false;this.nudged=false;clearTimeout(this.nudgeT);},
   beginActivity(fromT){
     if(this.activity||!this.manualVad)return;
     if(this.speaking&&!cfg.interrupt)return;
-    this.activity=true;this.send({realtimeInput:{activityStart:{}}});
+    this.newUtt();this.activity=true;this.send({realtimeInput:{activityStart:{}}});
     for(const x of AudioIO.ring)if(x.t>=fromT)this.sendPcm(x.c);
   },
   endActivity(){if(!this.activity)return;this.activity=false;this.send({realtimeInput:{activityEnd:{}}});
-    this.lastUtt={a:VAD.startT,b:nowS()};if(!this.awaitT)this.awaitT=nowS();},
+    this.uttEndT=nowS();this.lastUtt={a:VAD.startT,b:nowS()};if(!this.awaitT)this.awaitT=nowS();
+    if(this.nameHeard)this.scheduleNudge();},
+  /* il a entendu son prénom : s'il ne répond pas tout seul dans les 3 s, on lui demande de répondre */
+  scheduleNudge(){
+    if(!this.proactiveOn||this.activity)return;
+    clearTimeout(this.nudgeT);this.nudgeT=setTimeout(()=>this.nudge(),3000);
+  },
+  nudge(){
+    if(!this.ws||this.state!=='prêt'||this.nudged||this.activity||!this.nameHeard)return;
+    if(this.lastModelT>=this.uttEndT-.2||this.speaking||this.turnAudio)return;
+    this.nudged=true;log('il a entendu son prénom sans répondre : je lui demande de répondre');
+    this.send({clientContent:{turns:[{role:'user',parts:[{text:"(On vient de t'appeler par ton prénom : réponds maintenant à ce qui vient d'être dit, brièvement, en français.)"}]}],turnComplete:true}});
+  },
   /* surveillance : Google doit répondre à une phrase ; sinon la connexion est morte, on la refait et on rejoue la phrase */
   watch(){
     const t=nowS();
+    if(this.speaking&&!this.sources.length)this.speaking=false;
     if(this.ws&&this.state==='prêt'&&this.awaitT&&this.transcribeOn&&t-this.awaitT>6&&this.lastSrvT<this.awaitT){
       log('Google ne répond plus : nouvelle connexion');const u=this.lastUtt;this.close('sans réponse');
       if(u&&t-u.a<18)this.replay=u;this.retryAt=0;this.open('relance');
@@ -877,6 +892,7 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
   },
   onSpeechStart(){
     if(S.awake&&!this.speaking)setMood('ecoute');
+    else if(!S.awake&&S.started&&!S.night)S.ignored();
     if(cfg.brain==='gemini')this.wantNow();
     if(this.state==='prêt')this.beginActivity(VAD.startT);
   },
@@ -941,12 +957,12 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
       log('session Gemini prête'+(this.proactiveOn?' (il trie lui-même ce qui lui est adressé)':''));
       clearTimeout(this.openTimer);this.failKind='';this.awaitT=0;
       this.manualVad=this.step<4;this.activity=false;
-      if(this.replay&&this.manualVad){const u=this.replay;this.replay=null;log('je rejoue la dernière phrase');this.activity=true;this.send({realtimeInput:{activityStart:{}}});
+      if(this.replay&&this.manualVad){const u=this.replay;this.replay=null;log('je rejoue la dernière phrase');this.newUtt();this.activity=true;this.send({realtimeInput:{activityStart:{}}});
         for(const x of AudioIO.ring)if(x.t>=u.a&&x.t<=u.b+.05)this.sendPcm(x.c);this.endActivity();}
       /* la phrase qui a déclenché la connexion n'est pas perdue : on la rejoue */
       if(this.manualVad){
         if(VAD.active)this.beginActivity(VAD.startT);
-        else if(VAD.endT>this.openAskT-1.5&&VAD.endT>nowS()-6){const a=VAD.startT,b=VAD.endT;this.activity=true;this.send({realtimeInput:{activityStart:{}}});
+        else if(VAD.endT>this.openAskT-1.5&&VAD.endT>nowS()-6){const a=VAD.startT,b=VAD.endT;this.newUtt();this.activity=true;this.send({realtimeInput:{activityStart:{}}});
           for(const x of AudioIO.ring)if(x.t>=a&&x.t<=b+.05)this.sendPcm(x.c);this.endActivity();}
       }
       if(this.greet){const g=this.greet;this.greet=null;g();}
@@ -955,6 +971,7 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     if(m.sessionResumptionUpdate){const u=m.sessionResumptionUpdate;if(u.resumable&&u.newHandle)this.handle=u.newHandle;return;}
     if(m.goAway){log('Gemini va renouveler la connexion');setTimeout(()=>{if(!this.speaking&&!this.responding)this.close('renouvellement');},500);return;}
     if(m.toolCall){
+      this.lastModelT=nowS();clearTimeout(this.nudgeT);
       const out=[];
       for(const fc of (m.toolCall.functionCalls||[])){
         const res=await runTool(fc.name,JSON.stringify(fc.args||{}));log('outil',fc.name,JSON.stringify(fc.args||{}));
@@ -968,12 +985,13 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     if(sc.inputTranscription&&sc.inputTranscription.text){
       this.userTx+=sc.inputTranscription.text;S.lastActivity=nowS();
       if(S.awake){S.awakeUntil=Math.max(S.awakeUntil,nowS()+cfg.convWindow+8);if(!this.speaking)setMood('ecoute');}
-      if(!this.nameHeard&&nameIn(this.userTx)){this.nameHeard=true;log('entendu son nom : « '+this.userTx.trim()+' »');if(!S.awake)S.wake('nom');else S.onUserTurn();}
+      if(!this.nameHeard&&nameIn(this.userTx)){this.nameHeard=true;log('entendu son nom : « '+this.userTx.trim()+' »');if(!S.awake)S.wake('nom');else S.onUserTurn();this.scheduleNudge();}
     }
     if(sc.interrupted){this.stopAudio();this.muteTurn=false;this.turnAudio=false;this.responding=false;if(S.awake)setMood('ecoute');}
     if(sc.modelTurn&&sc.modelTurn.parts){
       for(const part of sc.modelTurn.parts){
         const d=part.inlineData;if(!d||!d.data||(d.mimeType&&!/audio/.test(d.mimeType)))continue;
+        this.lastModelT=nowS();clearTimeout(this.nudgeT);
         if(!this.turnAudio){this.turnAudio=true;this.responding=true;
           this.muteTurn=this.muteTurn||(!S.awake&&!this.nameHeard&&!this.proactiveOn);
           if(this.muteTurn)log('réponse coupée : son nom n\'a pas été dit');
@@ -984,7 +1002,7 @@ const GM={ws:null,opening:false,state:'off',speaking:false,responding:false,slee
     if(sc.outputTranscription&&sc.outputTranscription.text&&!this.muteTurn){S.subAdd(sc.outputTranscription.text);S.lastReply+=sc.outputTranscription.text;}
     if(sc.turnComplete){
       const spoke=this.turnAudio&&!this.muteTurn;
-      this.responding=false;this.turnAudio=false;this.muteTurn=false;this.nameHeard=false;this.userTx='';
+      this.responding=false;this.turnAudio=false;this.muteTurn=false;if(!this.manualVad){this.nameHeard=false;this.userTx='';}
       if(spoke&&!this.speaking)S.afterSpeech();
     }
   }
